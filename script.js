@@ -1,215 +1,230 @@
+
+
+
+/* =====================
+   LOAD SENTICNET WORD LIST
+   ===================== */
+
 let positiveWords = new Set();
 let negativeWords = new Set();
 
-
-// load senticnet dictionary
 fetch("senticnet.txt")
-.then(r => r.text())
-.then(data => {
+  .then(r => r.text())
+  .then(data => {
 
- let lines = data.split("\n");
+    data.split("\n").forEach(line => {
 
- lines.forEach(line => {
+      let parts = line.trim().split(/\s+/);
 
-  let parts =
-   line.trim().split(/\s+/);
+      if (parts.length >= 2) {
 
-  if(parts.length >= 2){
+        let polarity = parts[0];
 
-   let polarity = parts[0];
+        let word = parts[parts.length - 1].toLowerCase();
 
-   let word =
-    parts[1].toLowerCase();
+        if (polarity === "positive") positiveWords.add(word);
+        if (polarity === "negative") negativeWords.add(word);
 
-   if(polarity==="positive")
-    positiveWords.add(word);
+      }
 
-   if(polarity==="negative")
-    negativeWords.add(word);
+    });
+
+    console.log(
+      "Loaded words:",
+      positiveWords.size,
+      negativeWords.size
+    );
+
+  });
+
+
+
+/* =====================
+   FIND UI ELEMENTS
+   (wrapped in DOMContentLoaded so elements always exist)
+   ===================== */
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  /* FIX 1 — use IDs, not class selectors                      */
+  /* FIX 2 — clearBtn was ".btn-secondary"; button is ".btn-ghost" */
+
+  const analyzeBtn     = document.getElementById("analyze-btn");
+  const clearBtn       = document.getElementById("clear-btn");
+  const sampleBtn      = document.getElementById("sample-btn");
+  const textarea       = document.getElementById("sentiment-input");
+  const card           = document.getElementById("result-card");
+  const label          = document.getElementById("result-label");
+  const score          = document.getElementById("result-score");
+  const confidenceFill = document.getElementById("confidence-fill");
+  const confidencePct  = document.getElementById("confidence-text");
+  const charCount      = document.getElementById("char-count");
+
+
+
+  /* =====================
+     LIVE CHAR COUNTER
+     ===================== */
+
+  textarea?.addEventListener("input", () => {
+    if (charCount) charCount.textContent = textarea.value.length;
+  });
+
+
+
+  /* =====================
+     ANALYZE FUNCTION
+     ===================== */
+
+  function runAnalysis() {
+
+    if (!textarea) return;
+
+    let words = textarea.value
+      .toLowerCase()
+      .split(/\W+/);
+
+    let pos = 0;
+    let neg = 0;
+
+    words.forEach(w => {
+      if (positiveWords.has(w)) pos++;
+      if (negativeWords.has(w)) neg++;
+    });
+
+    let sentiment = "neutral";
+
+    if (pos > neg) sentiment = "positive";
+    else if (neg > pos) sentiment = "negative";
+
+
+    /* SHOW CARD */
+
+    if (card) {
+      card.classList.remove("hidden");
+      card.classList.add("revealed");
+    }
+
+
+    /* TEXT */
+
+    if (label) label.textContent = sentiment.toUpperCase();
+
+    if (score) score.textContent = "Positive: " + pos + " | Negative: " + neg;
+
+
+    /* CONFIDENCE */
+
+    let total = pos + neg;
+
+    let confidence = total === 0
+      ? 0
+      : Math.round(Math.max(pos, neg) / total * 100);
+
+    if (confidenceFill) confidenceFill.style.width = confidence + "%";
+    if (confidencePct)  confidencePct.textContent  = confidence + "%";
+
+
+    /* COLOUR */
+
+    document.getElementById("app").classList.remove(
+      "state-positive",
+      "state-negative",
+      "state-neutral"
+    );
+
+    card?.classList.remove(
+      "card-positive",
+      "card-negative",
+      "card-neutral"
+    );
+
+    if (sentiment === "positive") {
+      document.getElementById("app").classList.add("state-positive");
+      card?.classList.add("card-positive");
+    }
+    else if (sentiment === "negative") {
+      document.getElementById("app").classList.add("state-negative");
+      card?.classList.add("card-negative");
+    }
+    else {
+      card?.classList.add("card-neutral");
+    }
 
   }
 
- });
 
- console.log("dictionary loaded");
 
-});
+  /* =====================
+     ANALYZE BUTTON
+     ===================== */
 
+  analyzeBtn?.addEventListener("click", () => {
 
+    /* start loading */
+    analyzeBtn.classList.add("btn-loading");
 
+    /* small delay for animation */
+    setTimeout(() => {
 
-// sentiment logic
-function analyzeSentiment(text){
+      runAnalysis();
 
- let words =
-  text.toLowerCase().split(/\W+/);
+      /* stop loading */
+      analyzeBtn.classList.remove("btn-loading");
 
- let pos = 0;
- let neg = 0;
+    }, 300);
 
- words.forEach(w=>{
+  });
 
-  if(positiveWords.has(w)) pos++;
+  /* Ctrl+Enter shortcut */
+  textarea?.addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      analyzeBtn?.click();
+    }
+  });
 
-  if(negativeWords.has(w)) neg++;
 
- });
 
- let sentiment = "neutral";
+  /* =====================
+     CLEAR BUTTON
+     FIX: was querying ".btn-secondary" — button class is ".btn-ghost"
+     FIX: also resets char counter
+     ===================== */
 
- if(pos>neg) sentiment="positive";
+  clearBtn?.addEventListener("click", () => {
 
- else if(neg>pos) sentiment="negative";
+    /* clear text */
+    if (textarea) textarea.value = "";
 
- return {
-  sentiment,
-  pos,
-  neg
- };
+    /* FIX 3 — reset char counter */
+    if (charCount) charCount.textContent = "0";
 
-}
+    /* hide card */
+    card?.classList.add("hidden");
+    card?.classList.remove(
+      "revealed",
+      "card-positive",
+      "card-negative",
+      "card-neutral"
+    );
 
+    /* reset colour */
+    document.getElementById("app").classList.remove(
+      "state-positive",
+      "state-negative",
+      "state-neutral"
+    );
 
+    /* reset confidence */
+    if (confidenceFill) confidenceFill.style.width = "0%";
+    if (confidencePct)  confidencePct.textContent  = "0%";
 
+    /* stop any loading state */
+    analyzeBtn?.classList.remove("btn-loading");
 
-// update UI
-function showResult(r){
+    /* return focus to textarea */
+    textarea?.focus();
 
- const card =
-  document.querySelector(".result-card");
-
- const label =
-  document.querySelector(".verdict-label");
-
- const score =
-  document.querySelector(".verdict-score");
-
- const confidenceFill =
-  document.querySelector(".confidence-fill");
-
- const confidencePct =
-  document.querySelector(".confidence-pct");
-
-
-
- card.classList.remove("hidden");
-
- card.classList.add("revealed");
-
-
-
- label.textContent =
-  r.sentiment.toUpperCase();
-
-
-
- score.textContent =
-  "Positive: "+r.pos+
-  " | Negative: "+r.neg;
-
-
-
- let total = r.pos+r.neg;
-
- let confidence =
-  total===0
-  ?0
-  :Math.round(
-   Math.max(r.pos,r.neg)
-   /total*100
-  );
-
-
-
- confidenceFill.style.width =
-  confidence+"%";
-
- confidencePct.textContent =
-  confidence+"%";
-
-
-
- document.body.classList.remove(
-  "state-positive",
-  "state-negative"
- );
-
-
-
- card.classList.remove(
-  "card-positive",
-  "card-negative",
-  "card-neutral"
- );
-
-
-
- if(r.sentiment==="positive"){
-
-  document.body.classList.add(
-   "state-positive"
-  );
-
-  card.classList.add(
-   "card-positive"
-  );
-
- }
-
- else if(r.sentiment==="negative"){
-
-  document.body.classList.add(
-   "state-negative"
-  );
-
-  card.classList.add(
-   "card-negative"
-  );
-
- }
-
- else{
-
-  card.classList.add(
-   "card-neutral"
-  );
-
- }
-
-}
-
-
-
-
-document.addEventListener(
-"DOMContentLoaded",
-
-()=>{
-
- const btn =
-  document.querySelector(
-   ".btn-primary"
-  );
-
- const textarea =
-  document.querySelector(
-   ".text-area"
-  );
-
-
-
- btn.addEventListener(
-  "click",
-
- ()=>{
-
-  let result =
-   analyzeSentiment(
-    textarea.value
-   );
-
-  showResult(result);
-
- });
+  });
 
 });
