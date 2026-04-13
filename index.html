@@ -1,0 +1,704 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ManishRK—Sentiment Analysis Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
+  <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0e12; --surface: #13151c; --surface-2: #1c1f2b;
+  --border: rgba(255,255,255,0.07); --border-hover: rgba(255,255,255,0.14);
+  --text-primary: #eef0f6; --text-secondary: #8a8fa8; --text-muted: #4e5268;
+  --accent: #5b6bff; --accent-glow: rgba(91,107,255,0.18); --accent-soft: rgba(91,107,255,0.1);
+  --pos: #22d991; --pos-glow: rgba(34,217,145,0.22); --pos-soft: rgba(34,217,145,0.08); --pos-text: #a8ffdb;
+  --neg: #ff4d6d; --neg-glow: rgba(255,77,109,0.22); --neg-soft: rgba(255,77,109,0.08); --neg-text: #ffa5b5;
+  --neu: #8a8fa8; --neu-glow: rgba(138,143,168,0.15); --neu-soft: rgba(138,143,168,0.06); --neu-text: #c0c4d6;
+  --font-display: 'Syne', sans-serif; --font-body: 'DM Sans', sans-serif; --font-mono: 'DM Mono', monospace;
+  --t-fast: 0.18s ease; --t-med: 0.35s cubic-bezier(0.16,1,0.3,1); --t-slow: 0.55s cubic-bezier(0.16,1,0.3,1);
+}
+html { scroll-behavior: smooth; }
+body { background-color: var(--bg); color: var(--text-primary); font-family: var(--font-body); font-size: 15px; line-height: 1.6; min-height: 100vh; overflow-x: hidden; transition: background-color var(--t-slow); position: relative; }
+body.state-positive { --accent: var(--pos); --accent-glow: var(--pos-glow); --accent-soft: var(--pos-soft); background-color: #0a110e; }
+body.state-negative { --accent: var(--neg); --accent-glow: var(--neg-glow); --accent-soft: var(--neg-soft); background-color: #130a0d; }
+.grain-overlay { position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E"); opacity: 0.03; pointer-events: none; z-index: 0; }
+.blob { position: fixed; border-radius: 50%; filter: blur(120px); opacity: 0; pointer-events: none; z-index: 0; transition: opacity var(--t-slow), background-color var(--t-slow); }
+.blob-a { width: 600px; height: 600px; top: -200px; left: -200px; }
+.blob-b { width: 500px; height: 500px; bottom: -150px; right: -150px; }
+.blob-c { width: 350px; height: 350px; top: 40%; left: 50%; transform: translate(-50%,-50%); }
+body.state-positive .blob-a { background: var(--pos); opacity: 0.05; }
+body.state-positive .blob-b { background: #0af5b0; opacity: 0.04; }
+body.state-positive .blob-c { background: var(--pos); opacity: 0.03; }
+body.state-negative .blob-a { background: var(--neg); opacity: 0.06; }
+body.state-negative .blob-b { background: #ff8c00; opacity: 0.04; }
+body.state-negative .blob-c { background: var(--neg); opacity: 0.03; }
+.page-shell { position: relative; z-index: 1; max-width: 700px; margin: 0 auto; padding: 40px 24px 80px; }
+.site-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 56px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.logo-mark { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+.logo-icon { font-size: 22px; color: var(--accent); transition: color var(--t-med); animation: none 3s ease-in-out infinite; }
+@keyframes pulse-logo { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+.header-meta { display: flex; align-items: center; gap: 12px; }
+.badge { font-family: var(--font-mono); font-size: 11px; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-glow); border-radius: 4px; padding: 2px 7px; transition: all var(--t-med); }
+.lexicon-count { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+.hero { margin-bottom: 44px; }
+.hero-eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; transition: color var(--t-med); }
+.hero-title { font-family: var(--font-display); font-size: clamp(38px, 6vw, 58px); font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 18px; }
+.hero-title em { font-style: italic; color: var(--accent); transition: color var(--t-med); position: relative; }
+.hero-title em::after { content: ''; position: absolute; bottom: 2px; left: 0; right: 0; height: 2px; background: var(--accent); border-radius: 2px; opacity: 0.5; transition: background var(--t-med); }
+.hero-sub { font-size: 15px; color: var(--text-secondary); line-height: 1.7; }
+.input-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 24px; transition: border-color var(--t-med), box-shadow var(--t-med); }
+.input-card:focus-within { border-color: var(--border-hover); box-shadow: 0 0 0 1px var(--border-hover), 0 8px 32px rgba(0,0,0,0.3); }
+.input-card-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 0; }
+.input-label { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); }
+.char-counter { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+.text-area { width: 100%; background: transparent; border: none; outline: none; resize: none; padding: 14px 20px 18px; color: var(--text-primary); font-family: var(--font-body); font-size: 15px; line-height: 1.65; caret-color: var(--accent); }
+.text-area::placeholder { color: var(--text-muted); font-style: italic; }
+.text-area.shake { animation: shake 0.4s cubic-bezier(0.36,0.07,0.19,0.97); }
+@keyframes shake { 10%,90% { transform: translateX(-2px); } 20%,80% { transform: translateX(4px); } 30%,50%,70% { transform: translateX(-4px); } 40%,60% { transform: translateX(4px); } }
+.input-card-footer { border-top: 1px solid var(--border); padding: 14px 20px; }
+.action-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.input-tip { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 10px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; border: none; cursor: pointer; font-family: var(--font-body); font-weight: 600; border-radius: 10px; transition: all var(--t-fast); position: relative; overflow: hidden; white-space: nowrap; gap: 6px; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #0d0e12; font-size: 14px; padding: 9px 20px; min-width: 120px; height: 40px; transition: background var(--t-med), box-shadow var(--t-fast); }
+.btn-primary:hover { box-shadow: 0 0 20px var(--accent-glow), 0 2px 8px rgba(0,0,0,0.3); filter: brightness(1.1); }
+.btn-inner { display: flex; align-items: center; gap: 7px; transition: opacity var(--t-fast), transform var(--t-fast); }
+.btn-icon { width: 15px; height: 15px; }
+.btn-hint { font-family: var(--font-mono); font-size: 10px; opacity: 0.6; background: rgba(0,0,0,0.15); border-radius: 4px; padding: 1px 5px; }
+.btn-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 5px; opacity: 0; pointer-events: none; transition: opacity var(--t-fast); }
+.btn-loader span { width: 5px; height: 5px; background: currentColor; border-radius: 50%; animation: loader-bounce 0.8s ease-in-out infinite; }
+.btn-loader span:nth-child(2) { animation-delay: 0.15s; }
+.btn-loader span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes loader-bounce { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+.btn-primary.btn-loading .btn-inner { opacity: 0; transform: translateY(4px); }
+.btn-primary.btn-loading .btn-loader { opacity: 1; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); font-size: 13px; padding: 8px 14px; height: 40px; }
+.btn-ghost:hover { border-color: var(--border-hover); color: var(--text-primary); background: var(--surface-2); }
+.result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: border-color var(--t-med), box-shadow var(--t-med); }
+.result-card.hidden { display: none; }
+.result-card.revealed { display: block; animation: card-in 0.5s cubic-bezier(0.16,1,0.3,1) forwards; }
+@keyframes card-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.card-positive { border-color: rgba(34,217,145,0.25) !important; box-shadow: 0 0 40px rgba(34,217,145,0.08), inset 0 1px 0 rgba(34,217,145,0.12) !important; }
+.card-negative { border-color: rgba(255,77,109,0.25) !important; box-shadow: 0 0 40px rgba(255,77,109,0.08), inset 0 1px 0 rgba(255,77,109,0.12) !important; }
+.card-neutral  { border-color: rgba(138,143,168,0.2) !important; }
+.verdict-row { display: flex; align-items: center; gap: 20px; padding: 28px 28px 24px; }
+
+.result-icon {
+  font-size: 48px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color var(--t-med), text-shadow var(--t-med);
+  animation: none;
+}
+@keyframes icon-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.94); } }
+.icon-pos { color: var(--pos) !important; text-shadow: 0 0 24px var(--pos-glow); }
+.icon-neg { color: var(--neg) !important; text-shadow: 0 0 24px var(--neg-glow); }
+.icon-neu { color: var(--neu) !important; }
+.verdict-label-eyebrow { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 4px; }
+.verdict-label { font-family: var(--font-display); font-size: clamp(32px, 6vw, 44px); font-weight: 800; line-height: 1; letter-spacing: -0.03em; margin-bottom: 6px; transition: color var(--t-med); }
+.card-positive .verdict-label { color: var(--pos) !important; }
+.card-negative .verdict-label { color: var(--neg) !important; }
+.card-neutral  .verdict-label { color: var(--neu-text) !important; }
+.verdict-score { font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); }
+.section-divider { height: 1px; background: var(--border); margin: 0 28px; }
+.confidence-block { padding: 20px 28px; }
+.confidence-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.section-label { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); }
+.confidence-pct { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.card-positive .confidence-pct { color: var(--pos); }
+.card-negative .confidence-pct { color: var(--neg); }
+.confidence-track { width: 100%; height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+.confidence-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.7s cubic-bezier(0.16,1,0.3,1), background var(--t-med); }
+.card-positive .confidence-fill { background: var(--pos) !important; box-shadow: 0 0 8px var(--pos-glow); }
+.card-negative .confidence-fill { background: var(--neg) !important; box-shadow: 0 0 8px var(--neg-glow); }
+.confidence-note { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.stat-item { display: flex; flex-direction: column; align-items: center; padding: 20px 16px; background: var(--surface); gap: 5px; text-align: center; }
+.stat-number { font-family: var(--font-display); font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.stat-desc { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.4; }
+.stat-pos .stat-number { color: var(--pos); }
+.stat-neg .stat-number { color: var(--neg); }
+.stat-neu .stat-number { color: var(--neu); }
+.breakdown-block { padding: 20px 28px 28px; }
+.breakdown-legend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 16px; }
+.legend-chip { font-family: var(--font-mono); font-size: 11px; border-radius: 5px; padding: 2px 8px; }
+.chip-pos { background: var(--pos-soft); color: var(--pos-text); }
+.chip-neg { background: var(--neg-soft); color: var(--neg-text); }
+.chip-neu { background: var(--neu-soft); color: var(--neu-text); }
+.legend-note { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+.word-breakdown { display: flex; flex-wrap: wrap; gap: 8px; line-height: 1; }
+.token-chip { display: inline-flex; align-items: baseline; gap: 2px; font-family: var(--font-mono); font-size: 13px; padding: 4px 10px; border-radius: 7px; border: 1px solid transparent; transition: transform var(--t-fast), box-shadow var(--t-fast); cursor: default; animation: chip-in 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes chip-in { from { opacity:0; transform: scale(0.85) translateY(4px); } to { opacity:1; transform: scale(1) translateY(0); } }
+.token-chip:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.token-chip sup { font-size: 9px; font-weight: 700; opacity: 0.8; }
+.token-chip.token-modified { border-style: dashed; }
+.token-pos { background: var(--pos-soft); color: var(--pos-text); border-color: rgba(34,217,145,0.2); }
+.token-neg { background: var(--neg-soft); color: var(--neg-text); border-color: rgba(255,77,109,0.2); }
+.token-neu { background: var(--neu-soft); color: var(--text-muted); border-color: rgba(138,143,168,0.1); }
+.text-muted { color: var(--text-muted); font-style: italic; font-size: 13px; }
+.site-footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center; font-size: 12px; font-family: var(--font-mono); color: var(--text-muted); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: 99px; }
+::selection { background: var(--accent-soft); color: var(--text-primary); }
+@media (max-width: 480px) { .page-shell { padding: 24px 16px 60px; } .hero-title { font-size: 36px; } .verdict-row { padding: 20px; gap: 14px; } .confidence-block, .breakdown-block { padding: 16px 20px 20px; } .section-divider { margin: 0 20px; } .result-icon { font-size: 36px; } .verdict-label { font-size: 28px; } }
+
+  </style>
+</head>
+<body id="app">
+  <div class="grain-overlay" aria-hidden="true"></div>
+  <div class="blob blob-a" aria-hidden="true"></div>
+  <div class="blob blob-b" aria-hidden="true"></div>
+  <div class="blob blob-c" aria-hidden="true"></div>
+  <main class="page-shell">
+    <header class="site-header">
+      <div class="logo-mark"><span class="logo-icon">&#9672;</span><span class="logo-text">Manish R K</span></div>
+      <div class="header-meta"><span class="badge">v2.0</span><span class="lexicon-count">2,93,500 word </span></div>
+    </header>
+    <section class="hero">
+      <p class="hero-eyebrow">NLP Model</p>
+      <h1 class="hero-title">Decode the<br /><em>emotion</em> in your words.</h1>
+      <p class="hero-sub">Paste any sentence, phrase, or paragraph &mdash; NLP will dissect each word, detect negations &amp; intensifiers, and score your text in real-time.</p>
+    </section>
+    <div class="input-card">
+      <div class="input-card-header">
+        <label for="sentiment-input" class="input-label">Your Text</label>
+        <span class="char-counter"><span id="char-count">0</span> chars</span>
+      </div>
+      <textarea id="sentiment-input" class="text-area" placeholder='e.g. "I absolutely love this amazing product!"' maxlength="1000" rows="4" autocomplete="off" spellcheck="false"></textarea>
+      <div class="input-card-footer">
+        <div class="action-row">
+          <button id="analyze-btn" class="btn btn-primary">
+            <span class="btn-inner">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21C16.9706 21 21 16.9706 21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 3L21 3L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 3L13 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span>Analyze</span>
+              <span class="btn-hint">Ctrl+&#8629;</span>
+            </span>
+            <span class="btn-loader" aria-hidden="true"><span></span><span></span><span></span></span>
+          </button>
+          <button id="sample-btn" class="btn btn-ghost">
+            <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M4 6H20M4 12H14M4 18H9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Sample
+          </button>
+          <button id="clear-btn" class="btn btn-ghost">
+            <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Clear
+          </button>
+        </div>
+        <p class="input-tip">Tip: Ctrl+Enter to analyze quickly</p>
+      </div>
+    </div>
+    <div id="result-card" class="result-card hidden">
+      <div class="verdict-row">
+        <span id="result-icon" class="result-icon">&#9672;</span>
+        <div class="verdict-text">
+          <p class="verdict-label-eyebrow">Sentiment Result</p>
+          <h2 id="result-label" class="verdict-label">&mdash;</h2>
+          <p id="result-score" class="verdict-score">Net score: 0.00</p>
+        </div>
+      </div>
+      <div class="section-divider"></div>
+      <div class="confidence-block">
+        <div class="confidence-header">
+          <span class="section-label">Match Confidence</span>
+          <span id="confidence-text" class="confidence-pct">0%</span>
+        </div>
+        <div class="confidence-track"><div id="confidence-fill" class="confidence-fill" style="width:0%"></div></div>
+        <p class="confidence-note">Percentage of words matched in the 6,794-word lexicon</p>
+      </div>
+      <div class="section-divider"></div>
+      <div class="stats-row">
+        <div class="stat-item stat-pos"><span id="stat-pos" class="stat-number">0</span><span class="stat-desc">Positive words</span></div>
+        <div class="stat-item stat-neg"><span id="stat-neg" class="stat-number">0</span><span class="stat-desc">Negative words</span></div>
+        <div class="stat-item stat-neu"><span id="stat-neu" class="stat-number">0</span><span class="stat-desc">Neutral words</span></div>
+      </div>
+      <div class="section-divider"></div>
+      <div class="breakdown-block">
+        <p class="section-label">Word-Level Breakdown</p>
+        <p class="breakdown-legend">
+          <span class="legend-chip chip-pos">&#8593; positive</span>
+          <span class="legend-chip chip-neg">&#8595; negative</span>
+          <span class="legend-chip chip-neu">&middot; neutral</span>
+          <span class="legend-note">* = affected by negation/intensifier</span>
+        </p>
+        <div id="word-breakdown" class="word-breakdown"></div>
+      </div>
+    </div>
+    <footer class="site-footer">
+      <p>Built with 2,93,500 words </p>
+       <p>IIT JAMMU * Behavioural Sciences & Predictiv Analytics </p>
+    </footer>
+      <footer class="site-footer">
+     
+      <p style="margin-top:6px;font-size:13px;color:#8a8fa8;">
+  Vibe coded by 
+  <a href="https://www.linkedin.com/in/manish-karande-b427b3393/" target="_blank" style="text-decoration:none;">
+    <span style="color:var(--accent);font-weight:600;">mrk_21 Linkedin</span>
+  </a>
+</p>
+    </footer>
+  </main>
+
+  <script>
+    // =========================================================
+    // WORD LEXICONS — embedded from positivewords.txt & negativewords.txt
+    // =========================================================
+    const POSITIVE_WORDS = new Set(["pampered", "cooperative", "exceed", "beckon", "standout", "tempt", "sensitive", "dominated", "goodwill", "peach", "revelation", "unbound", "temptingly", "facilitate", "passionately", "available", "simplest", "congratulations", "amiabily", "speedily", "well-wishers", "impressive", "gaily", "abounds", "consummate", "elate", "profuse", "recommendations", "adroitly", "fond", "tough", "warmth", "trust", "well-regarded", "swanky", "celebrate", "brainy", "audibly", "prodigiously", "eloquence", "nicely", "sumptuously", "commendably", "daring", "resourcefulness", "rock-stars", "joyously", "smooth", "irresistibly", "adulate", "top-notch", "euphorically", "receptive", "peaceful", "dominates", "rockstars", "achievible", "dedicated", "cleanliness", "hard-working", "believeable", "rightfully", "laudable", "visionary", "hooray", "smilingly", "eulogize", "delightful", "astonish", "uplift", "relish", "pleasingly", "cushy", "illuminati", "personages", "powerful", "exuberant", "rapt", "restructuring", "benifits", "idealize", "advantage", "mightily", "energize", "evenly", "endearing", "advocates", "homage", "aspiration", "justly", "cherished", "commend", "thoughtfulness", "harmless", "outstandingly", "steadiness", "intuitive", "maneuverable", "pretty", "well-backlit", "phenomenally", "trustworthy", "poignant", "propitious", "fine", "sharper", "finer", "gems", "guiltless", "won", "punctual", "promptly", "recommend", "civility", "mesmerizes", "sharp", "overture", "time-honored", "subsidizing", "subsidized", "ergonomical", "innovative", "charismatic", "danken", "vibrant", "flawless", "boundless", "invigorate", "eyecatching", "regal", "bountiful", "skillfully", "fave", "happily", "outperforms", "grandeur", "vouchsafe", "easing", "talents", "smart", "elated", "intelligent", "properly", "desirous", "industrious", "regally", "support", "sufficed", "prosperity", "promoter", "safely", "heroize", "smartly", "exaltedly", "acumen", "fav", "meritorious", "enthusiastically", "luxury", "efficient", "enlighten", "smiling", "neat", "refresh", "unbeatable", "brave", "exaltation", "graciousness", "soft", "agreeably", "extraordinary", "expansive", "obtainable", "clear", "appropriate", "versatility", "healthful", "congratulate", "exaltingly", "lighter", "consistent", "stellar", "suavely", "commitment", "roomy", "relief", "infallible", "stellarly", "friendly", "revolutionary", "reachable", "shine", "pepped", "enhances", "impress", "precise", "adored", "concise", "glimmer", "sweetly", "enthralled", "gaiety", "valiantly", "undaunted", "commodious", "angelic", "sexy", "well-intentioned", "easy", "well-bred", "thumbs-up", "unmatched", "heartfelt", "unabashedly", "kid-friendly", "innocuous", "individualized", "enchanted", "happier", "savvy", "stupendously", "exhilarate", "marvelously", "skill", "meticulously", "earnest", "helpful", "comfy", "reaffirmation", "constructive", "risk-free", "warmly", "exultation", "god-given", "willing", "astonishing", "smiles", "qualified", "revives", "ideal", "seasoned", "truthfully", "wow", "winner", "uphold", "eager", "profound", "self-respect", "pamperedness", "supports", "buoyant", "excitedness", "victory", "fruitful", "agility", "believable", "verifiable", "tantalize", "loyal", "youthful", "pep", "complement", "brilliantly", "gratitude", "enjoy", "prudent", "tingle", "maturely", "wonders", "indulgence", "delicious", "masterpiece", "awestruck", "unreal", "remarkable", "benefactor", "imaginative", "tempting", "slick", "counter-attack", "agilely", "gleefully", "outwit", "excitedly", "glow", "handsome", "thrilling", "fastest-growing", "talent", "comfort", "virtue", "luxuriate", "warmhearted", "detachable", "dummy-proof", "palatial", "beckons", "refund", "useful", "whoa", "politeness", "low-risk", "lead", "astutely", "correctly", "generously", "delight", "deserving", "dignity", "entrancing", "usable", "perfect", "virtuous", "loyalty", "counter-attacks", "reform", "yay", "accessible", "reforms", "glad", "worthiness", "fidelity", "benefit", "expertly", "lucid", "smoothest", "compactly", "destiny", "noteworthy", "dignified", "piety", "courage", "easier", "excitingly", "flexible", "humane", "excellent", "affirmative", "booming", "poise", "gained", "enraptured", "shimmering", "fancinating", "succeeding", "eagerness", "courageous", "lustrous", "capably", "fecilitous", "cleanly", "privilege", "well-made", "leading", "undisputably", "splendid", "unrestricted", "fastest", "frolic", "titillatingly", "relent", "trustworthiness", "reasonably", "comprehensive", "crisp", "enticing", "fascinating", "elan", "magic", "exceeds", "spellbind", "well-being", "pros", "sophisticated", "exalting", "handily", "illumine", "mind-blowing", "readily", "reasonable", "mastery", "optimistic", "saint", "thumb-up", "beckoning", "fancier", "novelty", "keen", "assurance", "ecstatic", "cute", "honorable", "wondrous", "agreeable", "pre-eminent", "unencumbered", "adjustable", "obsession", "outstanding", "poeticize", "adventuresome", "pride", "sturdy", "unbiased", "boom", "aspirations", "integrated", "tickle", "endorse", "freed", "exalt", "first-rate", "enlightenment", "admiringly", "beauty", "genius", "appreciative", "best-selling", "friendliness", "charisma", "colorful", "outshone", "prosper", "attune", "survivor", "amazes", "deft", "prudence", "confidence", "admiring", "regard", "reputable", "spirited", "nurturing", "incredible", "triumphant", "aspire", "judicious", "feature-rich", "glory", "positively", "reassure", "eases", "exciting", "gracious", "affectation", "gaining", "bonny", "geeky", "fertile", "upheld", "vigilance", "enjoyable", "assurances", "inestimably", "vigilant", "jubilant", "astounding", "proficiently", "steadiest", "amity", "admirer", "user-friendly", "jubilation", "enticed", "convincing", "issue-free", "appreciatively", "contentment", "topnotch", "finely", "magnificently", "excel", "shimmeringly", "gentle", "plentiful", "insightful", "faster", "logical", "distinguished", "prefers", "infallibility", "attraction", "outperforming", "dynamic", "impartiality", "inexpensive", "enjoys", "compliant", "memorable", "invaluablely", "well-positioned", "bloom", "excellant", "openness", "beckoned", "advocated", "desiring", "smartest", "well-informed", "obsessions", "luckiness", "inspire", "cheer", "superb", "fondly", "proven", "appreciable", "rejoicingly", "pleased", "fortuitously", "nicest", "outsmart", "consistently", "preferably", "amicability", "nobly", "complemented", "enrich", "snazzy", "pluses", "humble", "ethical", "kindly", "coherence", "bless", "sensible", "idolize", "ingenuous", "openly", "prefered", "overtake", "willingness", "recovery", "astonishingly", "revere", "tenderly", "zeal", "ready", "amazing", "faithful", "irreplaceable", "applaud", "righten", "fortune", "notably", "exquisite", "incredibly", "marvels", "luck", "maturity", "fearless", "apotheosis", "zippy", "eminent", "conciliate", "reassurance", "grand", "snappy", "perseverance", "rejuvenated", "upliftment", "beutifully", "compatible", "creative", "ameliorate", "dead-cheap", "sufficient", "dazzling", "straightforward", "comfortable", "reliable", "heros", "improves", "praiseworthy", "proves", "dote", "enliven", "harmony", "nourish", "interests", "cashbacks", "immaculately", "intrigue", "spacious", "portable", "remedy", "windfall", "catchy", "survival", "revolutionized", "accomplish", "classy", "intelligible", "amazement", "savings", "high-quality", "swankier", "lucidly", "ftw", "skilled", "awsome", "altruistic", "upgraded", "joyful", "non-violence", "witty", "faultless", "sincerely", "thinner", "hearten", "succeeds", "competitive", "magical", "pepping", "fantastically", "succeeded", "lionhearted", "straighten", "invigorating", "overtaken", "strikingly", "stirringly", "sensibly", "stately", "playfully", "finest", "extraordinarily", "peacekeepers", "fairness", "skillful", "delighted", "clear-cut", "abound", "light-hearted", "prodigious", "succeed", "agreeableness", "godsend", "recover", "outperform", "convenient", "replaceable", "sweet", "enticingly", "beneficially", "effectual", "readable", "keenly", "togetherness", "galore", "dumbfounded", "accommodative", "gifted", "mesmerizingly", "stabilize", "beauteous", "beautifullly", "rightly", "handy", "whoooa", "sensationally", "hottest", "harmoniously", "feasible", "excallent", "unassailable", "meaningful", "rightful", "exhilarating", "decisive", "unity", "intimate", "effusive", "brighten", "enthuse", "festive", "acclaimed", "clears", "morality", "defender", "substantive", "joyfully", "stupendous", "recomend", "impartially", "eventful", "favorited", "ease", "master", "flatteringly", "low-price", "harmonize", "mighty", "bright", "cooperatively", "trusty", "peace", "thrive", "promised", "grin", "easy-to-use", "lavish", "admirably", "delightfulness", "handsomely", "speedy", "awed", "reverently", "fashionably", "useable", "prize", "evocative", "simpler", "exquisitely", "overtook", "superbly", "considerate", "dignify", "ardently", "balanced", "rich", "compliment", "endorsing", "productively", "refined", "beautify", "convient", "effusively", "personalized", "simplify", "celebrated", "unequivocally", "suffice", "willingly", "backbone", "gorgeously", "peaceable", "trouble-free", "raptureous", "beneficent", "remission", "happy", "thoughtful", "restful", "empower", "smile", "gloriously", "solidarity", "audible", "staunchly", "impressively", "tops", "sociable", "endorses", "accomodative", "thriving", "accessable", "cohesive", "rewarding", "gainfully", "well-connected", "breakthrough", "merriness", "fragrant", "cure", "dauntless", "decent", "levity", "stimulative", "excites", "fashionable", "secure", "sustainability", "well-received", "navigable", "jolly", "calming", "superiority", "ambitious", "gladly", "welcome", "impassioned", "statuesque", "long-lasting", "magnificence", "outshine", "admirable", "dirt-cheap", "fervent", "favour", "powerfully", "unforgettable", "masterful", "geekier", "pamper", "ingenuously", "spellbindingly", "pleasurably", "afordable", "radiant", "gratifying", "champion", "favored", "lavishly", "excellently", "zest", "orderly", "rectifying", "impressed", "winners", "supporting", "advantageously", "dead-on", "sane", "attentive", "alluring", "inspiration", "striving", "altruistically", "self-sufficient", "virtuously", "prominent", "pamperedly", "amazed", "deference", "supportive", "noiseless", "favor", "wieldy", "compact", "deservedly", "irreproachable", "originality", "happiness", "invincible", "impresses", "fortuitous", "bullish", "jollify", "firmer", "tenaciously", "solid", "exceled", "poised", "faith", "fantastic", "unquestionable", "amenable", "silent", "precisely", "feasibly", "wellbeing", "daringly", "bravo", "graceful", "sturdier", "dreamland", "fabulously", "mesmerizing", "encouraging", "prowess", "boost", "inspiring", "satisfy", "glorify", "deginified", "ennoble", "complimentary", "beautiful", "respite", "rewardingly", "eye-catching", "led", "profoundly", "idyllic", "handier", "fervid", "luxurious", "fearlessly", "pleasantly", "playful", "approve", "achievable", "spellbinding", "wisely", "enjoyment", "reasoned", "peacefully", "cleverly", "refreshed", "praising", "commendable", "satisfactorily", "chivalry", "marvellous", "monumentally", "rapid", "best-performing", "successful", "smitten", "cleanest", "opulent", "sprightly", "eyecatch", "afford", "rapturously", "glitter", "cool", "overjoyed", "leads", "upgradable", "surmount", "treasure", "illuminating", "engrossing", "good", "upgradeable", "doubtless", "euphoric", "liberation", "rockstar", "goodly", "captivate", "danke", "resounding", "patiently", "modern", "terrific", "affection", "improved", "protective", "beautifully", "entrust", "renewed", "cure-all", "guarantee", "gratify", "intricate", "distinction", "brotherly", "divine", "elevate", "famous", "courtly", "god-send", "ingenuity", "supple", "foolproof", "calmness", "grace", "quaint", "patriotic", "faithfulness", "futuristic", "envious", "decency", "talented", "soundly", "stronger", "enjoyed", "stylized", "civilize", "fascinatingly", "miraculous", "breathlessness", "patience", "romantic", "agile", "work", "easiness", "brighter", "promising", "savior", "exellent", "entertaining", "passion", "educated", "prolific", "assure", "gusto", "supurbly", "miracles", "conveniently", "accomplishment", "endear", "empowerment", "celebration", "easygoing", "exuberance", "softer", "reliably", "enthrall", "thoughtfully", "compassion", "likes", "fascination", "generosity", "liberate", "luxuriously", "law-abiding", "wealthy", "proud", "congratulation", "adorable", "affordably", "painlessly", "invaluable", "marvelled", "admire", "lean", "miraculousness", "spellbound", "tremendously", "gallant", "intriguing", "winning", "victorious", "perfectly", "freedom", "amuse", "elegant", "effective", "enchantingly", "retractable", "fervently", "luster", "marvelousness", "ingenious", "cleared", "frugal", "liking", "plusses", "defeated", "vibrantly", "purposeful", "pinnacle", "prettily", "efficiently", "works", "unfazed", "staunchness", "thank", "bonus", "economical", "dextrous", "extoll", "diversified", "excels", "lush", "helping", "merry", "freedoms", "reverence", "delectable", "glee", "redeeming", "jovial", "thankful", "attractively", "a+", "posh", "resolute", "significant", "cozy", "equitable", "rectification", "whooa", "pleases", "encourage", "defeating", "tender", "award", "aver", "cheaper", "tougher", "upbeat", "steady", "loving", "worked", "clean", "convincingly", "salutary", "surreal", "gutsy", "sweeping", "enhancement", "courteous", "prompt", "achievement", "unlimited", "genial", "satisfies", "responsibly", "intriguingly", "principled", "divinely", "convienient", "excelled", "attractive", "coherent", "proving", "unparalleled", "heartily", "privileged", "impeccably", "non-violent", "polite", "appreciate", "gratification", "gracefully", "rejoice", "improving", "kudos", "adulation", "guidance", "nice", "quiet", "successfully", "err-free", "flourishing", "ingeniously", "qualify", "sensation", "super", "jubilantly", "monumental", "affirm", "carefree", "affably", "cashback", "appreciated", "relaxed", "revival", "recommendation", "sensations", "luxuriant", "warm", "hail", "empathy", "unaffected", "honoring", "spectacularly", "popular", "indulgent", "effusion", "articulate", "simplifying", "humorous", "rightness", "wonder", "sincerity", "capability", "sporty", "glowing", "neatly", "acclaim", "beloved", "proactive", "rejuvenate", "righteous", "clearer", "sparkle", "ardent", "exceptional", "securely", "exultant", "quieter", "expeditiously", "best", "titillating", "loved", "renown", "adore", "charming", "unquestionably", "congenial", "uplifting", "knowledgeable", "bravery", "clearly", "accurate", "stylish", "respect", "right", "golden", "wholesome", "lawfully", "affectionate", "courageously", "heartwarming", "realizable", "nifty", "exult", "elite", "convenience", "embolden", "enrichment", "better", "well-mannered", "pain-free", "gorgeous", "miraculously", "gallantly", "pleasurable", "timely", "raptureously", "free", "clarity", "fanfare", "well-managed", "panoramic", "eye-catch", "gains", "motivated", "unequivocal", "state-of-the-art", "entice", "formidable", "dashing", "rejoicing", "honesty", "fame", "sweetheart", "epic", "astonished", "tranquility", "lawful", "nimble", "refinement", "vivid", "enviously", "enrapt", "joy", "outdo", "well-run", "richness", "prodigy", "supremely", "first-class", "influential", "self-satisfaction", "brand-new", "smoothly", "sumptuousness", "gratifyingly", "pardon", "reaffirm", "respectable", "brilliant", "love", "defeats", "reconciliation", "swift", "prospros", "magnanimous", "jaw-droping", "wholeheartedly", "indebted", "astound", "invincibility", "engaging", "radiance", "perfection", "autonomous", "impeccable", "strong", "promise", "crisper", "glitz", "admiration", "heal", "credence", "robust", "foresight", "upliftingly", "mesmerized", "successes", "redeem", "swank", "kindliness", "adoringly", "resound", "enthusiast", "groundbreaking", "pampers", "patriot", "enviousness", "sparkling", "resourceful", "top", "adorer", "ecenomical", "fresh", "feat", "toughest", "stainless", "honest", "refine", "ambitiously", "benefits", "enchanting", "surpass", "advantages", "providence", "triumph", "valor", "appeal", "liked", "affluent", "imaculate", "satisified", "pleasant", "splendor", "assuring", "suave", "preferable", "scenic", "all-around", "thrill", "overtakes", "staunch", "goodness", "premier", "enrapture", "heartening", "richer", "revolutionize", "fondness", "confident", "exhilaration", "accolade", "edify", "charitable", "excellency", "sweetness", "supported", "swiftness", "brilliance", "problem-solver", "enchant", "advocate", "peps", "inviolate", "breathtakingly", "classic", "chaste", "diligently", "acclamation", "famously", "stable", "unrivaled", "tidy", "eloquently", "well-behaved", "luckier", "decisiveness", "harmonious", "merit", "progress", "valuable", "rectify", "stimulate", "soulful", "permissible", "examplary", "gain", "adaptive", "lovably", "blockbuster", "resilient", "win", "endorsed", "easiest", "ecstasies", "sustainable", "triumphal", "brainiest", "dotingly", "wonderfully", "affinity", "redemption", "favorable", "bolster", "hotcake", "enjoyably", "patient", "appreciates", "enterprising", "stylishly", "everlasting", "inpressed", "contrasty", "elation", "loves", "euphoria", "reformed", "delicacy", "jaw-dropping", "healthy", "bliss", "blissfully", "gratifies", "alluringly", "tenacious", "well-educated", "sagacity", "endorsement", "hale", "fabulous", "improvements", "impartial", "slammin", "rock-star", "rational", "ardor", "improvement", "astounded", "respectfully", "wowing", "heroically", "prestigious", "awesome", "stunning", "extol", "majesty", "lifesaver", "durable", "fortunate", "generous", "amazingly", "charmingly", "hero", "effusiveness", "cheery", "credible", "prefer", "excitement", "trustingly", "stimulating", "blameless", "fairly", "laud", "lower-priced", "greatness", "effectiveness", "envy", "adoring", "modesty", "flexibility", "rapport", "diligence", "contribution", "miracle", "reforming", "ebullient", "steadfastness", "insightfully", "simplified", "well-known", "complementary", "smoother", "marveled", "recommended", "advanced", "erudite", "awe", "valiant", "fiery", "variety", "paradise", "effortless", "world-famous", "trendy", "breakthroughs", "masterfully", "success", "earnestness", "solace", "selective", "idol", "spotless", "refunded", "veritable", "amusingly", "supreme", "protect", "awards", "goood", "jubilate", "soundness", "affluence", "genuine", "important", "wows", "ebulliently", "peppy", "mesmerize", "hopeful", "suffices", "solicitous", "brightest", "calm", "excited", "modest", "righteously", "supremacy", "romantically", "winnable", "entranced", "complements", "oasis", "brilliances", "honor", "rapturous", "immaculate", "evaluative", "viewable", "chic", "instrumental", "fast-growing", "restored", "gumption", "renaissance", "dumbfounding", "distinctive", "instructive", "enhance", "eagerly", "comfortably", "enviable", "understandable", "positive", "encouragement", "stunningly", "enjoying", "gooood", "energetic", "revive", "quicker", "exceeding", "fascinate", "graciously", "trivially", "restructure", "coolest", "auspicious", "ultra-crisp", "champ", "felicitous", "heroine", "famed", "exonerate", "tantalizing", "fair", "holy", "cherub", "accomplishments", "gladden", "favorite", "roomier", "benevolence", "spontaneous", "innovation", "sumptuous", "felicity", "fast-paced", "energy-efficient", "illustrious", "serenity", "merrily", "adequate", "eminence", "masterpieces", "trumpet", "well-rounded", "ecstatically", "celebratory", "stability", "better-known", "tolerable", "transparent", "breeze", "dazzled", "wins", "truthfulness", "invulnerable", "authoritative", "conscientious", "prudently", "keenness", "luckiest", "thrillingly", "cornerstone", "effectively", "exhilaratingly", "prestige", "preferes", "elatedly", "freshest", "compassionate", "interesting", "helped", "kindness", "rosy", "soothingly", "revitalize", "humourous", "accurately", "hilarious", "intelligence", "soothe", "flawlessly", "satisfied", "gratified", "cajole", "merciful", "saver", "trophy", "hallowed", "nourishment", "unselfish", "chivalrous", "delicate", "marvelous", "streamlined", "profusion", "terrifically", "wonderous", "undisputable", "low-cost", "affordable", "multi-purpose", "continuity", "momentous", "reclaim", "darling", "assuredly", "well", "enough", "cheapest", "polished", "entertains", "humility", "thrift", "positives", "amusing", "exemplary", "reward", "convience", "productive", "hot", "humor", "sagely", "gleeful", "romanticize", "immense", "titillate", "fulfillment", "lucky", "renowned", "legendary", "ecstasy", "godlike", "spiritual", "adulatory", "wowed", "amiability", "succes", "lovable", "paramount", "supurb", "instantly", "thrilled", "gratefully", "hospitable", "remarkably", "gem", "inventive", "tranquil", "amenity", "manageable", "glistening", "astoundingly", "lyrical", "subsidizes", "well-established", "appealing", "persevere", "enthral", "sleek", "worthwhile", "amply", "workable", "inspirational", "unfettered", "amiable", "strongest", "affable", "integral", "fervor", "preferring", "impressiveness", "self-sufficiency", "top-quality", "revel", "satisfying", "stunned", "precious", "elegance", "pure", "steadfastly", "upscale", "delightfully", "humorously", "abundant", "venerate", "first-in-class", "serene", "razor-sharp", "glisten", "user-replaceable", "capable", "versatile", "praise", "promises", "traction", "comforting", "wonderful", "fine-looking", "adroit", "noble", "phenomenal", "glowingly", "flutter", "lovely", "unabashed", "swankiest", "hotcakes", "halcyon", "hands-down", "gladness", "neatest", "warmer", "illuminate", "awesomely", "shiny", "pleasing", "matchless", "like", "ilu", "marvel", "awarded", "glamorous", "saintly", "effortlessly", "cuteness", "irresistible", "splendidly", "cohere", "smoothes", "sublime", "avidly", "hardy", "flashy", "mercifully", "outperformed", "greatest", "reputation", "respectful", "awesomeness", "beneficial", "lucrative", "truthful", "nicer", "low-priced", "gold", "nourishing", "honored", "exalted", "bonuses", "undamaged", "suitable", "woo", "saintliness", "accolades", "hardier", "outdone", "cherish", "advantageous", "adaptable", "authentic", "dazzle", "safe", "devout", "magnanimously", "fans", "triumphantly", "charm", "entertain", "salute", "comely", "lover", "optimal", "rejuvenating", "congratulatory", "seamless", "enviably", "pleasure", "enhanced", "elegantly", "toll-free", "correct", "propitiously", "cost-saving", "improve", "prosperous", "hallmark", "revolutionizes", "diligent", "purify", "dexterous", "progressive", "mercy", "brisk", "tantalizingly", "resplendent", "sharpest", "heroic", "leverage", "solicitously", "gush", "liberty", "outstrip", "examplar", "fortunately", "worth-while", "amaze", "unwavering", "eloquent", "infallibly", "rapture", "abundance", "fresher", "sufficiently", "protection", "excellence", "reverent", "blissful", "overtaking", "amicably", "breathtaking", "hallmarks", "flourish", "priceless", "dependably", "enthusiastic", "cost-effective", "righteousness", "satisfactory", "yes", "ebullience", "realistic", "record-setting", "sweeten", "preeminent", "passionate", "large-capacity", "striking", "subsidize", "flatter", "humour", "bargain", "sensational", "remunerate", "inestimable", "magnificent", "thrifty", "earnestly", "plush", "simplifies", "intimacy", "fluent", "vouch", "accomplished", "masters", "thrills", "peerless", "tenacity", "painless", "twinkly", "trusted", "self-determination", "unconditional", "wonderously", "problem-free", "responsive", "dexterously", "empathize", "gainful", "dominate", "best-known", "zenith", "fun", "faithfully", "ample", "supporter", "cleaner", "covenant", "laudably", "richly", "smarter", "better-than-expected", "defeat", "glorious", "undisputed", "affability", "vivacious", "restructured", "feisty", "luminous", "excelent", "optimism", "wise", "exuberantly", "felicitate", "diplomatic", "excite", "astonishment", "reconcile", "jubiliant", "foremost", "ideally", "gentlest", "desirable", "meticulous", "achievements", "fast", "loveliness", "hug", "idolized", "sincere", "worthy", "well-balanced", "futurestic", "great", "joyous", "cheerful", "exultingly", "stimulates", "uncomplicated", "inviolable", "benevolent", "steadfast", "spectacular", "eased", "clever", "conciliatory", "picturesque", "exemplar", "glimmering", "blithe", "fervidly", "adventurous", "proper", "grateful", "poetic", "flattering", "exceedingly", "trusting", "efficacious", "likable", "fancy", "dawn", "encouragingly", "prominence", "wisdom", "captivating", "proficient", "blossom", "mature", "high-spirited", "heavenly", "enthusiasm", "lively", "affirmation", "amicable", "ovation", "superior", "exceeded", "dependable", "worth", "headway", "avid", "courageousness", "approval", "trump", "blessing", "refreshing", "heaven", "exceptionally", "merriment", "majestic", "energy-saving", "beneficiary", "fortitude", "electrify", "angel"]);
+    const NEGATIVE_WORDS = new Set(["offending", "agonizing", "douchebag", "injurious", "hazy", "superficially", "foolhardy", "irrationally", "prickle", "agonize", "slander", "stifling", "unuseable", "shortcomings", "apathetic", "cold", "spewed", "scandalize", "tumble", "unsettle", "oversimplified", "screw-up", "dupe", "scaly", "deprived", "disbelieve", "screech", "hotbeds", "thumbs-down", "misfortune", "dismayed", "fist", "hiss", "nag", "deplore", "sneering", "underdog", "unnatural", "anxious", "unreliability", "writhe", "smoldering", "stalls", "despair", "bulkyness", "disintegration", "wrongful", "timidness", "ho-hum", "disagreeably", "aggravation", "fatuously", "goading", "sensationalize", "stiff", "knife", "chaff", "toll", "worry", "scarce", "disclaim", "undesirable", "headache", "tiresome", "upheaval", "remorseful", "flare", "victimize", "unworkable", "kills", "misuse", "mislike", "overwhelms", "unlamentable", "forbid", "fleeing", "inhospitable", "stumbled", "procrastinates", "uncontrolled", "hate", "irritate", "stooges", "desertion", "subversively", "wasted", "choppy", "famished", "creaks", "whine", "indecently", "jerky", "hazard", "spitefulness", "squeaks", "deceitfully", "shroud", "miseries", "throttle", "selfish", "melodramatic", "douchebags", "wobble", "assult", "condemned", "blasphemy", "punish", "obscenity", "exhort", "imperfection", "layoff-happy", "jeeringly", "lamentably", "stall", "disbeliever", "implicate", "dastard", "disparage", "obscure", "encroach", "hung", "terror-genic", "unsteadiness", "prate", "hater", "exhaust", "troubled", "scathing", "cronyism", "uneasiness", "hastily", "musty", "mushy", "panic", "cancerous", "contaminated", "discontent", "irrational", "cumbersome", "bastards", "hostilities", "floundering", "furious", "fruitless", "appalled", "loathsome", "niggles", "discriminatory", "irrationals", "rift", "incessant", "ill-conceived", "inappropriately", "misbehavior", "damaging", "disinclination", "interruption", "uncompetitive", "fatalistically", "worst", "rash", "wearisome", "latency", "crushed", "enflame", "pollute", "jittery", "corrosive", "improperly", "unease", "onerous", "senseless", "derisive", "gangster", "unequal", "ineligible", "frightening", "hothead", "incomparably", "drained", "painfull", "hell-bent", "cheesy", "gloatingly", "job-killing", "sues", "accursed", "frustrating", "suppression", "disses", "saggy", "propagandize", "dehumanize", "fuzzy", "revengeful", "disregardful", "hardliners", "inefficacious", "powerless", "uprising", "offenses", "kooky", "sedentary", "emaciated", "riled", "unlawful", "wreaked", "maliciously", "besmirch", "reluctance", "sunk", "infiltrator", "infest", "interference", "hurted", "renounce", "lose", "tepid", "yawn", "surrender", "audacity", "miscellaneous", "overweight", "bickering", "breakups", "mudslinging", "erodes", "ironical", "misses", "moronic", "ridiculously", "shambles", "grumpy", "horrendous", "lie", "mysterious", "bashing", "shortness", "glut", "hollow", "incommensurate", "inefficiently", "abusive", "immoral", "vent", "flair", "lunatic", "anti-american", "disgustfully", "draconian", "conspicuously", "calumnies", "complicated", "interferes", "falsify", "incitement", "less-developed", "screwy", "sadden", "grainy", "immoderately", "expensive", "panicky", "problems", "undercutting", "chasten", "implode", "irreparable", "villify", "devastatingly", "trauma", "mediocrity", "froze", "temptation", "unleash", "marginally", "denial", "moribund", "fatalistic", "stupid", "awkwardness", "full-blown", "debasement", "sting", "murder", "cuplrit", "hapless", "knock", "devilish", "collapse", "fuss", "injure", "rough", "swipe", "top-heavy", "unsettled", "grief", "hoodwink", "fainthearted", "defects", "dissocial", "fatty", "uncreative", "heartbreaker", "recourses", "unilateralism", "stubborn", "worriedly", "inaudible", "oppressiveness", "displeasing", "misdirection", "mortifying", "stain", "crisis", "flairs", "implacable", "wince", "moan", "complains", "futile", "irritations", "depress", "dizzing", "anomalous", "irrepressible", "malice", "slowly", "unreachable", "bemoaning", "dripping", "gracelessly", "disrespectful", "miserly", "so-cal", "worthlessly", "negation", "shamefully", "dazed", "insultingly", "dissuasive", "sporadic", "touted", "creaking", "perfidious", "perfunctory", "passiveness", "glower", "ill-sorted", "foe", "distress", "hegemony", "perish", "bumpping", "villianously", "aggressor", "cataclysmic", "genocide", "bugging", "indecency", "weird", "imposers", "indiscriminate", "lost", "obsessive", "irresolvable", "polarisation", "propaganda", "defamations", "ail", "disagreement", "hangs", "insociable", "unfit", "collusion", "tiringly", "blinding", "impedance", "haughtily", "nosey", "notoriety", "forsaken", "polluter", "disadvantage", "dragged", "manipulative", "scratches", "drab", "flaws", "inglorious", "demonizes", "inequitable", "insinuating", "perilously", "rejection", "shrouded", "sue", "slanderer", "misinform", "horrid", "threesome", "gloomy", "cheats", "drag", "refusing", "travesty", "warped", "flickers", "fib", "whiny", "chatterbox", "ax", "ridicule", "despoil", "goofy", "prejudice", "skeletons", "craven", "unhealthy", "rigidness", "negativity", "rumours", "helpless", "discourteous", "baffling", "impudence", "jam", "undissolved", "swelling", "impermissible", "angriness", "recoil", "unsettlingly", "brutalities", "disquiet", "cringe", "pains", "indeterminably", "refuted", "toil", "unsupported", "sloth", "unwieldy", "emphatically", "nightmarish", "suspiciously", "commiserate", "fetid", "mess", "prattle", "feeble", "ruthless", "lame", "defame", "spookiest", "stumped", "vagueness", "jumpy", "vibration", "bewildering", "losses", "sloww", "tantrum", "backbite", "anxiousness", "crippled", "distastefully", "hysterics", "precariously", "spookier", "isolation", "dilemma", "subjugate", "belabor", "fundamentalism", "relentlessly", "heathen", "debaser", "breakup", "vexingly", "smut", "flaw", "stresses", "traduce", "stern", "excessive", "eccentric", "excruciating", "admonisher", "profanity", "haters", "obliterated", "immodest", "conspiratorial", "ineptly", "grudging", "ill-favored", "excoriate", "gibberish", "inequitably", "irksomenesses", "jealousness", "madden", "weariness", "decry", "discord", "garish", "hardball", "puzzling", "disconcertingly", "spews", "mischievously", "disturb", "irragularity", "unjustifiable", "discourage", "sinisterly", "gruesomely", "bewildered", "unpredictable", "coercion", "madly", "sass", "complicit", "hostile", "discomfort", "dullard", "impossiblity", "self-destructive", "laughable", "subjugation", "unsound", "trick", "strident", "menacingly", "incorrect", "crueler", "calamity", "scolded", "arrogantly", "diatribe", "disown", "fidgety", "ricer", "wrinkle", "shrivel", "explode", "frenzy", "inundate", "expunge", "whimper", "pandemonium", "undefined", "diappointed", "smack", "derision", "sty", "scars", "retreat", "floored", "jitters", "cannibal", "loopholes", "perplexed", "imprecisely", "irreconcilable", "defiler", "barbarity", "manipulate", "disbelief", "degenerate", "gripes", "creep", "uglier", "unwilling", "chastise", "entanglement", "lagged", "confounding", "complication", "pleas", "mischievous", "mirage", "ingratitude", "obese", "autocrat", "accusing", "self-coup", "stab", "accusation", "slump", "strained", "stupidest", "insanity", "bruised", "befoul", "crafty", "downturns", "impugn", "dizzingly", "opposition", "asinininity", "crumbling", "grim", "fascism", "dissolution", "get-rich", "harms", "defiant", "illness", "chill", "threat", "undermined", "sillily", "pillory", "avarice", "lurking", "procrastinate", "reviled", "bulky", "wastefulness", "dungeons", "feebleminded", "beseech", "dismay", "shock", "debatable", "indulge", "break-up", "adulterier", "ultimatum", "wripped", "despicably", "water-down", "redundant", "simplistic", "strut", "conceded", "reprovingly", "drought", "passe", "absurdly", "inopportune", "cackle", "stealing", "sunken", "nettle", "disorder", "insular", "disdainfully", "doubts", "dreadful", "ineffectually", "insincerely", "incomparable", "cruel", "neglect", "disloyal", "frozen", "nonsense", "discountenance", "mischief", "racist", "skeptically", "strain", "impractical", "pander", "contrived", "distrust", "barbarian", "inept", "maniacal", "direness", "dimmer", "mudslinger", "unlikely", "criminal", "indolent", "nauseatingly", "downsides", "misunderstanding", "run-down", "problematic", "arrogance", "choleric", "hopeless", "bedlamite", "worrying", "bewail", "bereave", "dusty", "cracked", "lurch", "nagging", "ill-formed", "restlessness", "emptiness", "unfeeling", "intolerance", "traitorous", "atrophy", "dilapidated", "distorted", "phobic", "mistakenly", "provocation", "embroil", "spoil", "chaotic", "trash", "audacious", "fallaciousness", "acridly", "extraneous", "incompatible", "smoke", "untrustworthy", "inane", "slut", "sticky", "misunderstand", "cunts", "conscons", "limit", "nitpick", "fail", "suspect", "pales", "overstatement", "scoff", "sanctimonious", "displaced", "astray", "harmful", "heck", "incorrigible", "overacted", "dissention", "bigotries", "disheartening", "unnecessary", "oddest", "mishandle", "uncomfortable", "absentee", "abrasive", "forlornly", "repugnance", "issues", "inaccuracy", "allegations", "bankrupt", "hypocricy", "dislike", "enraging", "eschew", "moron", "onslaught", "pickets", "indiscreetly", "rigidity", "disinterested", "tangles", "tank", "crumples", "impurity", "creepy", "coupists", "blurring", "expropriation", "lifeless", "unwell", "thumb-down", "jutters", "defensive", "toughness", "nervous", "deprive", "despairingly", "irony", "painful", "impoverished", "harassment", "queer", "scandal", "debility", "insanely", "stinks", "mispronounces", "remorse", "freakish", "trickery", "commotion", "caustically", "trivial", "flabbergast", "lambaste", "mystify", "malaise", "inconstant", "pertinacious", "fiction", "squabble", "transgress", "banalize", "unlawfully", "bizarre", "loveless", "naively", "burdensomely", "dishonesty", "exorbitantance", "hideous", "disunity", "felonious", "inimically", "rattles", "louder", "scorchingly", "irking", "set-up", "obscenely", "doubtfully", "recessionary", "perversity", "improbability", "negatives", "debaucher", "unhappy", "protesting", "incognizant", "annihilate", "swollen", "loathe", "ruins", "sacrificed", "imprudence", "loud", "vengefully", "disapproval", "blistering", "parasite", "soapy", "rhetorical", "immorally", "loath", "disconsolate", "obliterate", "perturbed", "mishap", "snagging", "ignore", "challenging", "menacing", "shit", "franticly", "illusory", "deceit", "measly", "impeach", "irascible", "one-sided", "itchy", "ambivalent", "bum", "ironic", "overdone", "tension", "gibe", "unprepared", "inadverent", "issue", "molestation", "liars", "browbeat", "wallow", "daunting", "treachery", "discriminate", "ignominious", "injustice", "unsustainable", "drips", "wasting", "humid", "torment", "treacherous", "unconfirmed", "flirty", "careless", "savaged", "recklessly", "ill-natured", "naive", "disallow", "ripped", "wrest", "futility", "buckle", "falls", "kill", "nepotism", "undignified", "fleer", "unfunded", "violate", "morbid", "inflated", "tragically", "aggression", "irrationality", "solicitude", "stolen", "cunt", "dissidence", "dishonorable", "presumptuous", "fevers", "detestably", "unnaturally", "afflict", "unepic", "egocentric", "inaccurately", "jobless", "confound", "lemon", "exhaustion", "multi-polarization", "subservient", "tiring", "scrap", "terrible", "un-viewable", "blurt", "avariciously", "suspicion", "disquietude", "assault", "crass", "oversimplification", "killing", "lagging", "enjoin", "overwhelm", "unfairly", "anti-occupation", "disarray", "slack", "slooow", "drunken", "sorely", "complaints", "acerbate", "flee", "backache", "misguidance", "infested", "rut", "dismalness", "retaliate", "bumped", "disillusioned", "detracted", "disastrous", "garbage", "scathingly", "blather", "defiantly", "inhibit", "disorganized", "mock", "adulteration", "reluctantly", "dies", "revolt", "rude", "wedge", "desiccated", "tetchy", "downheartedly", "soreness", "angrily", "cracks", "dubious", "lurk", "despondent", "murky", "prejudge", "illogic", "inhibition", "leak", "tingling", "intoxicate", "laconic", "warned", "retarded", "fussy", "inextricably", "pitilessly", "debase", "stupidly", "disagrees", "inconsistencies", "misfit", "lack", "uproariously", "retards", "inconsolably", "incessantly", "scratched", "gimmicking", "distorts", "loser", "smudges", "untimely", "fears", "inexpertly", "nightmarishly", "insult", "lousy", "naughty", "despotism", "extremism", "overshadow", "monstrosities", "insolently", "flagrantly", "rile", "contempt", "beset", "muddy", "scold", "sinful", "paralize", "unipolar", "frustrations", "frightful", "grumpish", "drunkard", "swagger", "fallout", "excuse", "profane", "leakages", "funnily", "ineffective", "traumatically", "panick", "incivility", "mispronounce", "dissatisfactory", "blatant", "misunderstood", "sloppy", "maliciousness", "sputter", "obstruct", "err", "fathomless", "hiliarious", "ridiculous", "battering", "pricier", "destruction", "vexing", "scrambled", "stuck", "bereft", "distraught", "over-hyped", "spoilages", "vibrated", "acrid", "intermittent", "vengeance", "quibble", "crime", "loose", "disgustedly", "inactive", "partisans", "sicken", "bowdlerize", "slowwww", "helplessness", "scuffs", "anger", "dejected", "beastly", "unexpectedly", "shrew", "dread", "spook", "virus", "vomited", "ultimatums", "conspicuous", "unspecified", "childish", "condescendingly", "forlorn", "uneventful", "rumple", "sermonize", "malevolence", "virulent", "disarm", "sick", "flareups", "devious", "disturbingly", "swelled", "finicky", "unskilled", "ungrateful", "heavyhearted", "anti-semites", "damn", "outraged", "hazardous", "bastard", "arcane", "detests", "dishonorablely", "stunted", "eviscerate", "rivalry", "immature", "undetermined", "alarmed", "disappointingly", "plotters", "remorseless", "stiffness", "oversight", "anarchism", "disappointment", "downfallen", "illogical", "unprofitable", "fool", "flimflam", "obscures", "prohibit", "boiling", "fat-cat", "urgent", "irritably", "vengeful", "break-ups", "despotic", "finagle", "degrading", "grumpily", "frigging", "monstrosity", "death", "disgustingly", "imminently", "undercuts", "short-lived", "bemoan", "opportunistic", "tortures", "refuting", "breaking", "hopelessly", "demonize", "paltry", "crashes", "scariest", "halfhearted", "sack", "static", "hack", "sloooooooooooooow", "tin-y", "pigs", "unrest", "sardonic", "disparagingly", "murderous", "admonishingly", "contradictory", "frenzied", "inundated", "disillusions", "disintegrate", "addicted", "violent", "2-faces", "overrated", "denounce", "bad", "bust", "stressfully", "restrictive", "bulkiness", "deviousness", "zealous", "craziness", "extort", "dispirited", "hating", "coldly", "dents", "acerbically", "discouragement", "hotheaded", "lurid", "maniac", "crummy", "excessively", "struggle", "ambivalence", "break", "creak", "drowning", "flat-out", "fanatic", "weep", "creeping", "calumniation", "flareup", "stifle", "illicit", "implication", "rip-off", "solemn", "dismissive", "stagnant", "error", "consternation", "stooge", "unaffordable", "horrendously", "imprecision", "invasive", "obtuse", "utterly", "exhausts", "risks", "gaudy", "mist", "detestable", "vehement", "illusions", "fragmented", "shrill", "outrageousness", "litigious", "stench", "inordinate", "rigid", "spank", "lament", "disrespecting", "doubtful", "guile", "exasperatingly", "horrible", "inefficient", "stark", "ugh", "vulnerable", "unhelpful", "hassle", "anomaly", "crazily", "devastation", "inflict", "nauseates", "stew", "plague", "plaything", "intrude", "bug", "acrimoniously", "indignation", "annoyed", "huckster", "inconveniently", "irksome", "rotten", "demoralize", "self-defeating", "humiliate", "timidity", "negative", "ragged", "unpopular", "seedy", "goad", "demeaning", "stutter", "brutalize", "needlessly", "somber", "brittle", "denunciate", "disavowal", "fault", "congested", "gimmick", "burns", "misguided", "bungle", "batty", "disagreeing", "scoffingly", "unclear", "indistinguishable", "declaim", "selfinterested", "helplessly", "inequalities", "impatient", "satirical", "quash", "spurn", "ill-tempered", "recklessness", "undermines", "grate", "dungeon", "anti-white", "cursed", "confuse", "allergy", "checkered", "overheat", "pratfall", "slowed", "overzealously", "stress", "insolent", "threatening", "cons", "insurmountably", "obscene", "overbalance", "irked", "sorrowfully", "fatigue", "quack", "leakage", "stun", "unruly", "uproot", "undependable", "insupportably", "inattentive", "crashed", "dislocated", "fanaticism", "delinquent", "strangest", "blindside", "blasted", "disadvantages", "drags", "catastrophies", "disliking", "grudges", "inevitable", "jarring", "adamantly", "laggy", "paranoia", "annoy", "destabilisation", "rebellious", "egregious", "smudge", "unnervingly", "wail", "impoverish", "delinquency", "fanciful", "martyrdom", "prick", "badly", "hurts", "mournful", "revolting", "ambiguity", "poisonous", "bleeding", "tangled", "impinge", "discordant", "zapped", "appall", "forged", "antagonize", "plot", "alarm", "needless", "heckled", "bomb", "tarnishing", "offensive", "invalidity", "squeak", "stumbles", "faint", "back-woods", "detracting", "phobia", "snarky", "neglected", "debauch", "irretating", "sneer", "mangling", "demoralizing", "unqualified", "intransigent", "alarmingly", "dumps", "incorrectly", "overdo", "slumping", "nettlesome", "dissolute", "dissonance", "fatcat", "testy", "regrettable", "unreasonable", "taunt", "remorsefully", "insults", "discontinued", "obstinate", "inaction", "noise", "lure", "zap", "noisy", "intimidatingly", "deadlock", "slog", "mindless", "usurp", "jabber", "asininely", "dreadfulness", "ruffle", "oppressively", "undermining", "incorrigibly", "pan", "pessimistically", "castrated", "devastate", "epidemic", "lied", "mocking", "rascal", "coercive", "repulsing", "asunder", "annoyingly", "foreboding", "overpower", "fumes", "lugubrious", "abominably", "chagrin", "mashed", "disingenuous", "fawningly", "nefariously", "perverse", "cravenly", "refuse", "struggling", "thankless", "feeblely", "strange", "strenuous", "pretense", "inappropriate", "spendy", "tattered", "temper", "villian", "pertinaciously", "condemnation", "faze", "spotty", "abused", "leery", "lawbreaking", "startlingly", "engulf", "lies", "misconceptions", "unkindly", "incongruously", "dislikes", "liable", "flaky", "inimical", "deplorable", "infidels", "bump", "ominously", "defunct", "unsure", "noises", "discombobulate", "traped", "hectic", "perfidity", "loneliness", "vainly", "unsuccessfully", "revile", "antagonistic", "instability", "thwart", "ill-treated", "mediocre", "pandering", "estranged", "hysteria", "contentious", "illogically", "inexpiable", "irritation", "horrifying", "blandish", "servitude", "bane", "discouragingly", "overbearing", "panders", "snappish", "beggarly", "corrosions", "superficiality", "extremist", "violators", "jolt", "butcher", "reprehensive", "tanks", "weirdly", "frenetically", "unsuccessful", "two-faces", "dictatorial", "disordered", "slow", "bruise", "abuses", "inconsistence", "spewing", "peeled", "vilify", "killer", "petrify", "displeasure", "incautious", "obnoxiously", "faltered", "cynical", "fretful", "gasp", "traitor", "scolding", "subservience", "quarrelsome", "mean", "bull****", "unrelenting", "spade", "aggrieve", "pretentious", "upseting", "contagious", "insufferable", "damper", "condescend", "mismanage", "harpy", "indoctrination", "nonresponsive", "felon", "blunders", "reprehensible", "inconsiderate", "stumble", "worsening", "figurehead", "inadequately", "precarious", "addict", "mad", "importunate", "prideful", "sadly", "delusion", "inflammatory", "unknown", "dreary", "ironically", "seethe", "stormy", "thirst", "unpleasantries", "malcontent", "stunt", "calumniate", "prik", "divisively", "dissappointing", "confuses", "glum", "ire", "vexation", "depressions", "botch", "hesitant", "disdainful", "oddity", "dispiritedly", "interruptions", "inelegance", "sober", "evasion", "lethal", "execrate", "authoritarian", "furor", "quarrellous", "impropriety", "resurgent", "disrespectable", "revoke", "beleaguer", "punitive", "slowww", "confused", "meddle", "baseless", "polemize", "jeopardy", "deterrent", "deviate", "abyss", "antipathy", "madness", "narrower", "splitting", "stranger", "unwanted", "smelly", "oppressors", "achey", "furiously", "heckles", "bothered", "inhospitality", "lewdness", "obscurity", "suppress", "leaks", "darkened", "hell", "inapt", "crack", "inexcusably", "infringements", "rascals", "deject", "sardonically", "demise", "mocked", "preoccupy", "disservice", "distrustful", "spilling", "horrifys", "impose", "problem", "hated", "sketchy", "scare", "ding", "inferior", "forebodingly", "frustrated", "poverty", "unacceptablely", "bitterly", "sob", "confusing", "hostility", "haywire", "outcry", "tarnishes", "unthinkable", "downer", "left-leaning", "coerce", "smolder", "diabolic", "damages", "worn", "enmity", "pillage", "asperse", "scapegoat", "untruthful", "apprehensively", "abruptly", "lame-duck", "defamation", "downturn", "pugnacious", "virulence", "sorrowful", "leaky", "bicker", "disrespectfulness", "exhorbitant", "ultra-hardline", "degrade", "confounded", "itch", "fume", "impulsively", "troubling", "frustrate", "bereavement", "insincere", "troubles", "irrationalities", "dissappointed", "arrogant", "bore", "ached", "unsteadily", "combust", "dust", "dump", "contamination", "reproach", "grotesque", "intimidate", "frown", "unemployed", "misreading", "smelled", "distasteful", "illegal", "treason", "smokescreen", "ill-designed", "devil", "baffled", "overstate", "illiterate", "shimmy", "inteferes", "cliche", "impetuous", "forsake", "dispirit", "invader", "unaccessible", "nastiness", "exagerates", "hooligan", "ill-advised", "chilly", "mundane", "self-criticism", "gravely", "haphazard", "audiciously", "crooked", "maddeningly", "biases", "disapprove", "martyrdom-seeking", "toxic", "inconsistency", "instigate", "fastidious", "penalize", "straining", "wily", "involuntarily", "misalign", "rampage", "self-humiliation", "complain", "lacked", "corruptted", "betrayer", "awfulness", "overturn", "affliction", "rancor", "precipitous", "venom", "snobby", "raked", "hatefully", "decadence", "objection", "underestimate", "backwood", "occlude", "bewitch", "outrage", "indignantly", "travesties", "immaterial", "extravagant", "persecute", "premeditated", "uncomfortably", "clueless", "waning", "inhumanity", "sorry", "shortsighted", "capsize", "irresponsibly", "imperfections", "crumpled", "meanness", "alienate", "hatred", "offender", "paradoxical", "pathetically", "rejects", "explosive", "rhetoric", "madder", "womanizer", "anemic", "bloody", "evasive", "notorious", "shun", "spoilled", "damnably", "hopelessness", "wobbled", "addicting", "quarrellously", "beguile", "disrepute", "hallucination", "worthless", "adulterated", "infernal", "decrepitude", "reprehension", "ineffectual", "insufficiently", "adulterate", "limp", "audaciously", "devilry", "guilt", "brainless", "gibber", "head-aches", "hacks", "demolisher", "ineffectiveness", "cowardly", "mawkishness", "bogus", "odder", "cheater", "dishonest", "hysteric", "lackluster", "lawbreaker", "uncivil", "betraying", "brutalizing", "drain", "slow-moving", "unkind", "stressful", "invalid", "indignity", "bait", "severe", "lethargic", "arduous", "moody", "offence", "scum", "throbbed", "deficiencies", "ignoble", "haunt", "instigator", "wildly", "thoughtless", "defrauding", "salacious", "belated", "aggressiveness", "numb", "bores", "capitulate", "flakey", "exasperation", "trouble", "fallacious", "deceptively", "detested", "unexplained", "bemused", "oversimplify", "bumpy", "warily", "woeful", "injudicious", "stricken", "crashing", "misunderstandings", "whining", "doom", "hedge", "kaput", "defamatory", "ruthlessly", "berate", "protest", "disrupt", "shipwreck", "smug", "gauche", "unsavory", "insignificance", "emasculate", "cartoonish", "insinuation", "unsuspecting", "stains", "dishearteningly", "junk", "raging", "embattled", "scarier", "malignant", "conceit", "disapproving", "divergent", "scandals", "unobserved", "brute", "distortion", "quarrel", "belittle", "subversive", "disdained", "pervasive", "monotony", "violently", "bothers", "craze", "funky", "treasonous", "degradingly", "diss", "hard-hit", "tormented", "admonishment", "bent", "sickeningly", "manic", "conflict", "dirtbags", "pointlessly", "pity", "egotistical", "uncomfy", "doggedly", "regrets", "relentlessness", "cataclysmically", "hypocritically", "mockingly", "grudgingly", "stagnate", "outcast", "radicals", "mania", "two-faced", "reprove", "insensitive", "conservative", "inconsequent", "freeze", "exasperated", "breaks", "disappoints", "dissatisfy", "absurdness", "dinky", "hysterically", "over-priced", "snarl", "belie", "spoonfed", "shadowy", "superstitious", "delay", "vehemently", "protests", "anarchistic", "stigma", "appalling", "rattle", "incompatability", "ailing", "subvert", "sabotage", "fleeting", "bondage", "ironies", "antagonist", "disappointing", "apprehensive", "tired", "killed", "blotchy", "messes", "exasperate", "rusty", "craftly", "disillusionment", "imprecise", "skeptical", "freaking", "desiccate", "fatique", "lacks", "resentful", "paradoxically", "skepticism", "corrupting", "critic", "embarrassing", "extremists", "friggin", "inadvisably", "inflammed", "intractable", "laughably", "semi-retarded", "dispensable", "indignant", "unbelievable", "unnerving", "immorality", "snags", "stringent", "ill-usage", "plea", "dismally", "indeterminable", "tawdry", "fabricate", "liar", "spoilage", "sueing", "weaker", "wheedle", "occludes", "lackadaisical", "wretchedness", "impossible", "inarticulate", "lying", "woe", "repel", "tentatively", "unwillingness", "preposterously", "disquieting", "frantic", "overstated", "dim", "strike", "bombard", "cheapen", "grudge", "haughty", "shamefulness", "ramshackle", "relapse", "damnable", "boisterous", "invidiously", "reactionary", "assail", "raving", "wretchedly", "clogs", "perverted", "cheated", "annihilation", "concens", "compulsion", "wickedly", "slumpping", "mistrustfully", "concerns", "gutless", "gutter", "malodorous", "annoyance", "attack", "anti-israeli", "renunciation", "infiltrators", "aggressive", "nervousness", "gainsayer", "discontinuous", "failed", "disasterous", "faulty", "oversize", "deprave", "debt", "bumping", "chore", "touchy", "spoiled", "shocked", "outrageous", "deceitfulness", "distraughtly", "embroilment", "glaringly", "bid-rigging", "disapointment", "militancy", "unusual", "obnoxious", "loathsomely", "deform", "rattled", "taunting", "squeaky", "insolvent", "scarcely", "cheating", "subdued", "niggle", "risk", "exclusion", "scared", "denigrate", "disgrace", "fugitive", "fickle", "mobster", "mocks", "officious", "standstill", "regression", "bothering", "warning", "derisively", "imperfect", "stymied", "curse", "desperate", "mockeries", "grating", "inequality", "matte", "desolation", "desolate", "dispute", "fallacies", "rage", "occluded", "strangely", "harried", "delirium", "stupidity", "evildoer", "haunting", "sickly", "unhappily", "chide", "zombie", "conflicts", "pest", "disrespect", "fatuous", "adamant", "tangle", "infirm", "misapprehend", "misrepresent", "punch", "sad", "falling", "demean", "scorn", "apprehension", "eyesore", "poor", "clogged", "violator", "disagreeable", "disapointing", "infection", "ruin", "inexperienced", "simplistically", "unintelligible", "vulgar", "criticizing", "lone", "mangle", "begging", "nervously", "twists", "shiver", "impudently", "flabbergasted", "irrelevance", "fidget", "squash", "scorching", "slothful", "brainwash", "belligerence", "caustic", "disconcerted", "ailment", "fooled", "opponent", "uncivilized", "repugnantly", "hasty", "atrocity", "contend", "disappointed", "f**k", "fanatical", "giddy", "negate", "scornful", "patronize", "boycott", "caricature", "chafe", "irresponsible", "pettifog", "puny", "repulsed", "equivocal", "skinny", "sneeringly", "misery", "mourn", "idiots", "repulsive", "slanderous", "grumpiest", "nauseate", "limitations", "brashly", "bullshit", "extravagance", "dragoon", "smudging", "wrongly", "disturbing", "hard", "uneasily", "aggrieved", "setback", "fibber", "mists", "envious", "sorrow", "lamentable", "cloudy", "misgivings", "cautionary", "rife", "recalcitrant", "smouldering", "worrisome", "bravado", "disturbance", "scandalous", "fumble", "inconsequential", "disorderly", "tedious", "mangled", "disapprobation", "abominable", "depressingly", "insurrection", "shabby", "uproar", "culpable", "whips", "harm", "unbearablely", "unlawfulness", "dogged", "backaching", "quarrels", "disintegrated", "mispronounced", "peril", "stridently", "brimstone", "emergency", "inculcate", "peevishly", "farcically", "irately", "egomania", "misbecome", "disgusted", "repugn", "drawback", "incompetent", "subpoenas", "corrode", "shortcoming", "weed", "leech", "spite", "disaffected", "regret", "imperiously", "struggled", "belittling", "farce", "instable", "spurious", "dispiriting", "amputate", "illusion", "braggart", "d*mn", "rremediable", "vice", "tainted", "prohibitive", "concede", "enemies", "shortsightedness", "inexpert", "backaches", "bewilderment", "warlike", "licentiously", "rip", "darker", "lapsed", "decay", "gimmicked", "handicapped", "unacceptably", "cruelties", "disgustful", "chronic", "mendacity", "trapped", "maltreatment", "malevolently", "unsafe", "adverse", "concerned", "harass", "unuseably", "erosion", "refused", "expire", "insouciance", "lonesome", "immobilized", "villainously", "miscalculation", "anxiety", "senselessly", "fictitious", "scarred", "ugly", "limitation", "indiscretion", "midget", "mistake", "grieving", "enfeeble", "monstrous", "sickening", "suspicions", "squeal", "ignominy", "invisible", "womanizing", "repudiation", "disinclined", "morbidly", "belittled", "inextricable", "crowdedness", "unspeakable", "bitchy", "over-awe", "effrontery", "neurotically", "snagged", "bewilderingly", "villianous", "inoperable", "sinister", "unfortunate", "feverish", "precipitate", "evil", "conspire", "expulse", "subjected", "struck", "groundless", "shockingly", "oddly", "vagrant", "cramping", "unappealing", "inadverently", "disorient", "misjudge", "sufferers", "unneeded", "reject", "dissenter", "extinguish", "smuttier", "raping", "acrimonious", "downgrade", "thoughtlessness", "squirm", "damaged", "catastrophe", "backward", "mope", "neurotic", "condescension", "feign", "trashed", "insubstantially", "coarse", "dishearten", "scoldingly", "gruesome", "unsatisfactory", "perplex", "unorthodoxy", "blemish", "junkyard", "diametrically", "vileness", "inflationary", "monotonous", "hardened", "unlicensed", "nuisance", "jagged", "hedonistic", "ineffectively", "imprecate", "darken", "goof", "ineffectualness", "topple", "betrayal", "intransigence", "teasingly", "dejection", "trashy", "crude", "guiltily", "dunce", "faults", "abscond", "drastic", "blunt", "accuses", "boggle", "burdensome", "castigate", "illegitimate", "posturing", "erroneously", "last-ditch", "throbbing", "irrelevant", "crook", "sucky", "grossly", "impulsive", "wounds", "absurdity", "contortions", "fierce", "horrify", "pessimism", "hardships", "subversion", "sag", "destains", "dissatisfying", "wrinkles", "beggar", "imperialist", "payback", "dismayingly", "pry", "taboo", "erratically", "incapable", "lambast", "downbeat", "messed", "cussed", "undermine", "freezing", "scummy", "dick", "rumor", "scary", "snag", "resentment", "warp", "viciously", "unravel", "derogatory", "faithless", "liability", "twist", "massacre", "burned", "sleazy", "torture", "crept", "indelicate", "outlaw", "fiend", "ache", "hardhearted", "wreak", "egregiously", "inveigle", "pout", "intrusive", "squealing", "grind", "deadly", "ineloquently", "restless", "sued", "tempest", "viciousness", "fall", "hobble", "intefere", "mulish", "dirts", "crazy", "panicking", "drastically", "squabbling", "overpayed", "endanger", "spew", "inexperience", "trample", "culprit", "smelt", "immoderate", "mistakes", "miser", "atrocious", "demonized", "drunk", "hardliner", "anxieties", "bloodthirsty", "bored", "concessions", "disaster", "gawk", "hassled", "inexorable", "melodramatically", "misjudgment", "troublingly", "uncertain", "fiendish", "brutish", "fraud", "impersonal", "misaligned", "unfortunately", "inadequacy", "intolerablely", "strictly", "repetitive", "grouch", "breakdown", "offensiveness", "unresolved", "dark", "desert", "lawlessness", "unconvincingly", "argumentative", "congestion", "dawdle", "instigators", "wayward", "hothouse", "cruelly", "awkward", "divisive", "weary", "impure", "entrapment", "longingly", "discomfititure", "sidetrack", "disconsolately", "counterproductive", "unnerve", "indecisive", "qualms", "oppressive", "downcast", "smear", "craftily", "undersized", "betrays", "freezes", "misstatement", "hogs", "impediment", "vomiting", "quandary", "denied", "indiscriminately", "capriciously", "smugly", "weakening", "smuttiest", "belligerent", "fret", "stereotypically", "destitute", "revengefully", "incapably", "mawkish", "disadvantaged", "overzealous", "shamelessly", "unpleasant", "shirker", "unimaginable", "steals", "improper", "conspiracy", "hatefulness", "low-rated", "brashness", "scornfully", "butchery", "shaky", "cringed", "dissent", "smother", "impair", "disregard", "disabled", "high-priced", "nauseating", "downfall", "repudiate", "callous", "confess", "unavailable", "roadblocks", "miscalculate", "distraction", "irrecoverablenesses", "gripe", "quibbles", "obtrusive", "repugnant", "devastates", "frictions", "stinging", "unresponsive", "wilt", "wrath", "ill-used", "wrong", "exterminate", "fallacy", "debts", "arduously", "exacerbate", "exploitation", "slave", "sucker", "unnerved", "debilitating", "resistance", "pitiless", "incense", "oddities", "predicament", "bombastic", "qualm", "suffers", "blur", "gimmicks", "needy", "ominous", "overstates", "accusingly", "sharply", "infraction", "loathly", "stuffy", "lier", "ashamed", "breach", "false", "hassles", "inaptitude", "melancholy", "misinformed", "rubbish", "stigmatize", "heretical", "pauper", "disrespectablity", "weakness", "malicious", "impolite", "undid", "diabolical", "carelessness", "loathing", "bristle", "miscreant", "snobs", "interfere", "unfriendly", "oppress", "erroneous", "infuriate", "contaminate", "listless", "miss", "redundancy", "puzzlement", "unsupportive", "shrilly", "calamities", "savage", "boredom", "ranted", "imprison", "dope", "pompous", "runaway", "byzantine", "doomed", "admonition", "irksomely", "irritable", "sinking", "squander", "turbulent", "cataclysm", "viper", "tetchily", "comical", "frigid", "slashing", "obsolete", "downhearted", "gimmicky", "smutty", "startling", "restriction", "capriciousness", "falsehood", "antiquated", "bluring", "ordeal", "inequities", "bleakness", "calamitously", "judders", "regress", "uncollectible", "infections", "flagrant", "apathetically", "madman", "assassinate", "betrayals", "catastrophically", "chatter", "discouraging", "pernicious", "resent", "daunt", "uproarious", "invidiousness", "bias", "scandels", "inessential", "abolish", "admonish", "fanatics", "tauntingly", "bunk", "overloaded", "die", "regretted", "macabre", "hardship", "infringement", "grieve", "revoltingly", "meaningless", "peculiarly", "glare", "stubbornly", "distort", "waste", "restricted", "disconsolation", "aspersions", "imposing", "grisly", "bellicose", "perplexing", "deplorably", "perversion", "contemptible", "noisier", "demonizing", "rant", "allegation", "undecided", "venomous", "destroy", "tentative", "fastuous", "stupified", "compulsive", "dirt", "lag", "disable", "wrinkled", "tortuous", "transgression", "contaminates", "harden", "avaricious", "oppose", "petty", "weak", "deceitful", "dripped", "harangue", "errant", "imposition", "exile", "unyielding", "flighty", "pessimistic", "daze", "choke", "proprietary", "dangerous", "devoid", "fascist", "mockery", "procrastination", "donside", "stiflingly", "intimidation", "desperation", "anti-proliferation", "conceited", "droop", "incompetently", "steeply", "impiety", "forgetfully", "opinionated", "backbiting", "dismaying", "dishonor", "over-acted", "awful", "embarrass", "thoughtlessly", "stumps", "sugar-coated", "ill-treatment", "snare", "jealousy", "unjustifiably", "murderously", "reprimand", "ugliest", "savages", "na\u00f4ve", "galling", "rhapsodize", "spinster", "languor", "wack", "lowly", "irregular", "unsophisticated", "blockage", "lecherous", "shatter", "aggrivation", "maladjusted", "immovable", "condemn", "deception", "cripple", "stutters", "conspirator", "idiocy", "pokey", "clamorous", "snappishly", "exaggerate", "vengefulness", "tout", "anarchist", "frighteningly", "crowded", "jealously", "covetous", "carp", "dissembler", "limits", "friction", "dearth", "slug", "calumnious", "misconception", "foul", "cramped", "scandalized", "pretend", "bother", "failing", "fluster", "headaches", "hypocritical", "stupify", "dodgey", "wreck", "enviously", "degenerately", "nastily", "crumple", "douchbag", "long-winded", "volatility", "punishable", "repulsively", "troublesomely", "troublemaker", "vague", "denies", "cash-strapped", "dense", "impunity", "paralyzed", "detest", "discrimination", "loss", "unwillingly", "contravene", "depraved", "unclean", "setbacks", "die-hard", "fatigued", "substandard", "boring", "failure", "despondently", "myth", "wound", "pale", "bedlam", "self-interested", "inadvisable", "underlings", "cranky", "crabby", "venomously", "obstructing", "fastidiously", "swindle", "babble", "scandalously", "tragic", "harrow", "inflame", "uncompromising", "election-rigger", "carnage", "ignominiously", "despondency", "cannibalize", "shameless", "undocumented", "bullyingly", "dangerousness", "fractiously", "shoddy", "deteriorate", "vomits", "anti-us", "overtaxed", "depressed", "flagging", "futilely", "unlamentably", "forswear", "rifts", "abrupt", "skimpy", "war-like", "protested", "petrified", "suck", "grievances", "freaks", "graft", "inexcusable", "lethargy", "menace", "uncaring", "unforgiving", "tarnished", "plunder", "disintegrates", "brash", "inadequate", "pervert", "disobedient", "remorselessly", "rust", "struggles", "cheap", "miff", "evade", "devastating", "misinterpret", "distraughtness", "sufferer", "aborts", "judder", "hinder", "eruptions", "emphatic", "doddering", "mordant", "hum", "lapse", "embarrassment", "rival", "disconcert", "showdown", "scant", "archaic", "depression", "barbarous", "penalty", "hang", "nightmare", "bloated", "mortification", "catastrophes", "lapses", "sluts", "flicker", "invalidate", "rejecting", "fleed", "rollercoaster", "spookily", "afflictive", "sin", "fateful", "usurper", "encroachment", "apologist", "cry", "misaligns", "bitterness", "ruthlessness", "motionless", "scandel", "distaste", "pestilent", "jaded", "confrontation", "tense", "rants", "spoils", "angry", "defiance", "collude", "disgruntled", "gawky", "seriousness", "irregularity", "lascivious", "sink", "enviousness", "peevish", "irredeemable", "ill-fated", "misleading", "bulkier", "notoriously", "reckless", "rabid", "risky", "shake", "sneakily", "plagiarize", "unmoved", "over-valuation", "peeve", "imminence", "spiteful", "zealously", "terribly", "annoyances", "unusably", "misgiving", "dent", "destitution", "bashful", "shortage", "disappoint", "unrealistic", "whore", "accuse", "grouchy", "downhill", "bugs", "irk", "blameworthy", "delays", "unexpected", "gullible", "life-threatening", "manipulators", "leer", "dissatisfied", "sloppily", "unintelligile", "vile", "calamitous", "farfetched", "indeterminate", "mistrust", "despoiler", "overemphasize", "retard", "unimportant", "gritty", "lumpy", "pain", "aimless", "vomit", "lesser-known", "grievous", "polluters", "negligent", "mordantly", "overthrows", "long-time", "prison", "deceive", "distracting", "scams", "shriek", "sweaty", "discontented", "losing", "swamped", "haggard", "ruined", "unsecure", "barren", "corruption", "dull", "bullies", "forfeit", "delaying", "repress", "bitter", "phony", "tamper", "tumultuous", "untested", "cliched", "flawed", "marginal", "sags", "sulk", "obstinately", "subpoena", "horde", "curt", "stuttered", "wild", "slap", "maledict", "heartbreakingly", "absent-minded", "autocratic", "insufficient", "unaccustomed", "undue", "unusually", "unwelcome", "disgusting", "vicious", "indefensible", "alarming", "expropriate", "poky", "suffer", "discomfit", "insinuate", "mangles", "atrocities", "anti-", "alienation", "infuriating", "timid", "no", "eccentricity", "succumb", "overblown", "pricey", "impenitent", "exasperating", "farcical", "inconsistent", "vociferous", "panicked", "hype", "bruising", "insatiable", "selfishness", "tyrannically", "obstacle", "costlier", "sloow", "suspicious", "deterioration", "indecorum", "inescapable", "condemns", "crippling", "unhappiness", "wobbles", "hard-liner", "aground", "vibrates", "debauchery", "frantically", "smudged", "brutalising", "revulsive", "unbelievably", "cynicism", "discontentedly", "inconsolable", "smash", "disaffect", "secretive", "corrupted", "dizzy", "beware", "shame", "terribleness", "clunky", "wanton", "wiles", "zealot", "depressing", "dissing", "imperil", "scramble", "irksomeness", "sever", "aghast", "crooks", "greedy", "flake", "outmoded", "dubitable", "silly", "ghastly", "odor", "primitive", "slanders", "agonizingly", "crumble", "blurs", "gabble", "drains", "quitter", "stingingly", "dire", "brazenly", "destructive", "drop-outs", "entangle", "graceless", "calumniously", "inferiority", "irritating", "disliked", "uneven", "wimpy", "banish", "censure", "austere", "disconcerting", "far-fetched", "unfulfilled", "foolishness", "frustratingly", "wasteful", "fake", "aggravating", "bonkers", "fat-cats", "rusts", "direly", "gape", "loner", "unscrupulously", "stingy", "incendiary", "wripping", "missed", "zaps", "starve", "corrosion", "deceptive", "slanderously", "gloom", "remorselessness", "spoon-fed", "barbaric", "intense", "jeering", "unworthy", "dismissively", "malady", "orphan", "refutation", "untrue", "gossip", "dropout", "muscle-flexing", "doomsday", "doldrums", "ghosting", "inelegant", "overawe", "buzzing", "trivialize", "hissed", "grievance", "lonely", "staid", "malign", "upbraid", "fudge", "discourteously", "difficulty", "unconvincing", "fiasco", "deploring", "abominate", "questionable", "lags", "impossibly", "appallingly", "2-faced", "diatribes", "straggle", "bull----", "denunciation", "sh*t", "dissatisfaction", "sadness", "downside", "greed", "afraid", "torrent", "unseemly", "worse", "involuntary", "object", "dissidents", "attacks", "fatuity", "sucks", "shunned", "exhausted", "incompatibility", "altercation", "deny", "absence", "dragging", "desecrate", "mar", "noxious", "peeved", "picketed", "polution", "sham", "skeptic", "dauntingly", "delude", "obstruction", "disappointments", "dissension", "flees", "flicering", "humiliating", "inconsequently", "insane", "forbidden", "oblivious", "poisonously", "regretfully", "hard-line", "reproachful", "catastrophic", "controversial", "ferocity", "fury", "gruff", "hateful", "inefficiency", "baffle", "detrimental", "taunts", "lengthy", "perplexity", "disquietingly", "fusty", "conflicting", "unacceptable", "bigotry", "dissapointed", "dwindling", "crap", "puzzled", "shameful", "subjection", "tyrannical", "annoying", "dejectedly", "improbable", "broken", "deformed", "detriment", "fearsome", "indecision", "desititute", "slogging", "unreliable", "meddlesome", "sore", "mislead", "overstatements", "impede", "unproductive", "regretful", "unattractive", "frets", "disadvantageous", "layoff", "sully", "bitch", "acridness", "wrestle", "bribery", "casualty", "aspersion", "complaining", "humming", "rupture", "despondence", "sugar-coat", "heartless", "desultory", "superstition", "anarchy", "scrambles", "halfheartedly", "hates", "unable", "unimaginably", "testily", "erratic", "guilty", "preposterous", "escapade", "infamy", "monstrously", "harasses", "forceful", "hubris", "sarcastically", "vindictively", "overpriced", "subordinate", "paranoid", "irritant", "bleed", "broke", "bleakly", "indoctrinate", "imprudent", "insignificantly", "brazen", "dissemble", "corrupts", "mourner", "inanely", "back-wood", "implausibly", "infidel", "exorbitantly", "insufficiency", "strangle", "rail", "bungler", "heretic", "domineer", "geezer", "inconsiderately", "iniquity", "lecher", "foolishly", "obstructs", "desperately", "split", "vibrate", "haze", "discredit", "capricious", "ferociously", "inconvenience", "disparaging", "scarily", "scratch", "wreaks", "discordance", "insufferably", "outbreak", "shady", "troublesome", "stereotypical", "disputable", "complacent", "slogs", "superfluous", "biting", "mawkishly", "skittish", "exploit", "bs", "pique", "selfishly", "antithetical", "shocking", "turmoil", "impolitely", "insurmountable", "dictator", "hideousness", "agonies", "clumsy", "recession", "inconsequentially", "abnormal", "protracted", "sluggish", "infamously", "messing", "miserably", "earsplitting", "junky", "damned", "hardheaded", "despicable", "suicidal", "impending", "licentious", "elimination", "hindrance", "ineloquent", "ulterior", "blackmail", "disagreed", "difficulties", "hysterical", "iniquitous", "persecution", "sneaky", "infringe", "straggler", "unfamiliar", "disagree", "misbecoming", "animosity", "blab", "debacle", "temerity", "throb", "complaint", "doubt", "clique", "dilly-dally", "sagged", "infuriated", "trap", "aversion", "fictional", "idle", "ineptitude", "controversy", "incite", "confront", "thug", "devilment", "nefarious", "brutality", "oppositions", "outsider", "frost", "longing", "ingrate", "leaking", "crushing", "woefully", "insupportable", "puppet", "ranting", "undercut", "tanked", "disturbed", "horrific", "threaten", "dissident", "fails", "suicide", "disputed", "obsessively", "fatcats", "annoys", "draconic", "crash", "flak", "grapple", "irredeemably", "indigent", "odd", "washed-out", "chintzy", "motley", "deviously", "incredulous", "lech", "discontinuity", "lanky", "bragger", "unreadable", "irreplacible", "pathetic", "racism", "brutally", "mistrustful", "stale", "commonplace", "bumps", "punk", "dehumanization", "hasseling", "sagging", "unstable", "stupor", "disinterest", "biased", "growl", "lividly", "incoherently", "jeopardize", "bash", "offend", "irks", "misleadingly", "killjoy", "thrash", "racy", "unrelentingly", "cripples", "savagery", "haste", "fucking", "unviewable", "danger", "hypocrite", "revulsion", "languid", "contort", "insignificant", "fright", "bungling", "sugarcoated", "cruelty", "unscrupulous", "disillusion", "twisted", "pedantic", "absurd", "weaken", "demon", "crush", "prosecute", "impolitic", "vibrating", "plasticky", "embarrassingly", "pertinacity", "slower", "tyrant", "abysmally", "bafflement", "lull", "wicked", "detesting", "apocalypse", "extermination", "forgetfulness", "malcontented", "invidious", "disvalue", "battered", "siege", "superficial", "disingenuously", "joke", "monster", "disgruntle", "taut", "lorn", "dings", "fruitlessly", "degradation", "derisiveness", "steal", "bleeds", "implausible", "parody", "disaccord", "jeer", "sobering", "seething", "convoluted", "sickness", "spiritless", "inaccuracies", "brutal", "agony", "gaff", "impertinent", "stampede", "stringently", "upset", "undependability", "upsetting", "clamor", "flimsy", "blame", "incoherence", "calumny", "dismal", "disloyalty", "slaughter", "moot", "regreted", "passive", "tarnish", "sap", "overbearingly", "miserable", "busts", "idiot", "tyranny", "craps", "exagerated", "insensitivity", "merciless", "unjustified", "heckle", "streaky", "smells", "tediously", "disgust", "inefficacy", "irresolute", "smell", "uproarous", "sarcastic", "meltdown", "uneconomical", "asinine", "watered-down", "underpowered", "treacherously", "morons", "exaggeration", "insolence", "jutter", "fuck", "devilishly", "defy", "despised", "overpaid", "wretched", "appal", "disaffirm", "stammer", "repression", "adversary", "screwed-up", "aloof", "curses", "sub-par", "hegemonism", "rumors", "disproportionate", "susceptible", "inhumane", "dubiously", "snob", "unwatchable", "heartbreaking", "unusable", "excuses", "barbarously", "clog", "radicalization", "skittishly", "unprove", "grouse", "glitches", "horrifies", "limited", "enrage", "sneak", "laughingstock", "fracture", "draining", "pig", "overact", "oversights", "tacky", "frighten", "brood", "flickering", "sullen", "provoke", "deficient", "hallucinate", "flounder", "indifference", "frazzle", "darkness", "nonexistent", "overreach", "repressive", "critics", "confusion", "flares", "deceiving", "intrusion", "terrorism", "wretch", "rumbling", "erase", "decadent", "diabolically", "famine", "fearful", "rape", "raped", "scourge", "contradiction", "effigy", "second-tier", "uneasy", "dissonantly", "banal", "inexorably", "virulently", "insecure", "oppression", "overkill", "itching", "inflexible", "paupers", "uninformed", "corrupt", "glib", "blunder", "exagerate", "imprisonment", "egotism", "wrought", "decrement", "omit", "rue", "mournfully", "taint", "contradict", "grumble", "mendacious", "rampant", "beg", "bewilder", "prickles", "torturing", "distrusting", "bombardment", "insidious", "frustrates", "satirize", "fabrication", "expired", "ghetto", "hustler", "cloud", "drawbacks", "sloooow", "overzelous", "wane", "heresy", "dud", "galls", "divisiveness", "frustration", "omission", "mortify", "blind", "confined", "confrontational", "disoriented", "contrive", "avalanche", "glibly", "jealous", "shirk", "submissive", "messy", "ruining", "irretrievable", "juddering", "domineering", "cruelest", "adversarial", "ignorance", "spitefully", "dastardly", "disdain", "irritated", "commotions", "antagonism", "abomination", "contaminating", "infected", "cheerless", "idiocies", "refutes", "scream", "scuff", "disapointed", "bruises", "sourly", "joker", "stereotype", "misbehave", "inordinately", "second-class", "cancer", "subtract", "lunaticism", "deficiency", "partiality", "restrict", "ugliness", "nasty", "slur", "worsen", "hefty", "destroyer", "inflammation", "resignation", "back-logged", "skulk", "unorthodox", "incredulously", "funny", "defective", "denying", "cheat", "unreasonably", "facetious", "picky", "cuss", "sly", "starkly", "bashed", "weaknesses", "tingled", "dented", "difficult", "expel", "radical", "pointless", "shamelessness", "mysteriously", "fanatically", "predatory", "unfaithfully", "defect", "harbors", "useless", "enemy", "syndrome", "entrap", "concen", "bearish", "wariness", "bloodshed", "lacking", "freakishly", "unconstitutional", "innuendo", "insincerity", "sour", "disobedience", "ruts", "thicker", "reprehensibly", "traumatize", "drones", "averse", "combative", "falter", "filth", "impatiently", "resigned", "tricked", "vex", "exorbitant", "misread", "hostage", "overwhelmingly", "scoundrel", "burn", "deluge", "indifferent", "woebegone", "creeps", "flaunt", "droops", "disavow", "irrecoverable", "forbidding", "retaliatory", "unraveled", "deter", "awfully", "feckless", "vanity", "illegally", "decayed", "prohibitively", "scrambling", "gallingly", "gross", "smallish", "infamous", "distressed", "debilitate", "distains", "non-confidence", "stuttering", "outbursts", "frail", "abort", "recant", "fallen", "insidiously", "dishonestly", "slogged", "allergic", "losers", "blabber", "picket", "tenderness", "amiss", "broken-hearted", "imbroglio", "bothersome", "crappy", "irate", "facetiously", "peculiar", "humiliation", "perturb", "pimple", "revenge", "sunder", "unforeseen", "negligence", "misguide", "mire", "affront", "foully", "contrariness", "distressingly", "nebulous", "perverts", "reticent", "rogue", "scam", "disgraceful", "indecent", "scratchy", "spoon-feed", "foulness", "obstructed", "sidetracked", "overdue", "shimmer", "counter-productive", "harboring", "imbecile", "inaccurate", "arbitrary", "fustigate", "lewd", "overthrow", "tricky", "hoard", "languish", "manipulation", "severity", "unproves", "criticized", "pugnacity", "chastisement", "insubordinate", "screwed", "unavoidably", "askance", "fever", "squeals", "fatefully", "incomprehension", "stink", "smoulder", "truant", "criticize", "overbalanced", "egotistically", "foolish", "god-awful", "pretentiously", "provocative", "menial", "thorny", "alienated", "irrecoverably", "kook", "painfully", "hairloss", "bully", "poison", "pittance", "unjust", "interrupt", "unethical", "aggravate", "inevitably", "plunderer", "worried", "inclement", "frazzled", "wrangle", "deprecate", "fear", "cringes", "worthlessness", "disastrously", "enraged", "obsessiveness", "blindingly", "upsets", "worryingly", "infuriatingly", "indiscreet", "devastated", "tenuously", "discompose", "chaos", "injustices", "objections", "haggle", "impotent", "cocky", "fearfully", "displace", "burning", "fried", "bland", "hypocrites", "imperious", "regrettably", "slime", "torturous", "fissures", "vestiges", "addicts", "plight", "bleak", "taxing", "condescending", "stalemate", "mistified", "nitpicking", "inexplainable", "harridan", "confusions", "belligerently", "irreversible", "contemptuously", "poorer", "despairing", "dumping", "fraudulent", "retract", "ruffian", "harshly", "hamper", "sucked", "obscured", "critical", "damage", "uncompromisingly", "uncooperative", "incomplete", "aching", "betray", "vociferously", "din", "disgracefully", "dissuade", "inconceivably", "tortured", "strife", "plebeian", "starvation", "deceiver", "shallow", "tragedy", "flirt", "hoax", "overrun", "traumatic", "unwisely", "idiotically", "traitorously", "lawless", "loophole", "maddening", "retreated", "heavy-handed", "hideously", "scowl", "pinch", "ill-mannered", "isolate", "puppets", "untouched", "tease", "massacres", "burden", "flakieness", "blundering", "blurry", "clash", "partisan", "lackey", "scar", "inability", "distressing", "lukewarm", "allege", "confessions", "untenable", "blockhead", "ambiguous", "blaspheme", "fractious", "abrade", "unwise", "dropouts", "indiscernible", "dissatisfies", "racists", "incompetence", "injury", "costly", "disprove", "rocky", "shark", "concession", "hegemonistic", "pitiable", "sceptical", "nemesis", "vindictive", "embroiled", "disgraced", "self-serving", "dogmatic", "unfinished", "senile", "aborted", "pugnaciously", "tumbles", "idiotic", "insensitively", "suffocate", "offensively", "frightfully", "boastful", "defile", "harmed", "cheaply", "criticism", "inhuman", "lovelorn", "rebuke", "miserableness", "unachievable", "unfavorable", "molest", "uninsured", "disruptive", "displease", "incompliant", "ripoff", "confession", "contention", "impasse", "failures", "acrimony", "denunciations", "mystery", "fallaciously", "occluding", "apathy", "abysmal", "overwhelmed", "slowest", "gaffe", "died", "languorously", "lazy", "blister", "fulminate", "imaginary", "indiscriminating", "intolerable", "jeers", "muddle", "misbegotten", "hells", "traumatized", "audaciousness", "fell", "suffering", "unproving", "credulous", "busybody", "chunky", "worrier", "deign", "stodgy", "deaf", "impatience", "paucity", "poorest", "disoobedient", "enslave", "timidly", "greasy", "declining", "detraction", "mortified", "filthy", "rankle", "threats", "heinous", "deploringly", "murderer", "unfaithful", "decrepit", "picketing", "mindlessly", "jitter", "vain", "unlucky", "knave", "deplete", "symptom", "demonic", "bullying", "pitiful", "relentless", "deadbeat", "grimace", "complex", "villains", "meager", "snobbish", "ludicrously", "steep", "accusations", "demolish", "aweful", "dying", "brat", "glitch", "damning", "ambush", "backwoods", "depravedly", "desolately", "deviation", "letch", "licentiousness", "inescapably", "malevolent", "deadweight", "blow", "overlook", "shemale", "pretence", "unproved", "hawkish", "unproven", "over-balanced", "dissonant", "improbably", "regressive", "enervate", "wary", "incomprehensible", "insensible", "pariah", "degeneration", "horrified", "spooky", "whores", "repulsiveness", "time-consuming", "unjustly", "tramp", "tumbled", "grumpier", "intimidating", "prevaricate", "ridicules", "prejudices", "apologists", "scarcity", "stagnation", "hellion", "unauthentic", "coward", "lechery", "incongruous", "radically", "discrepant", "diffidence", "nebulously", "wrip", "unwarranted", "dumped", "avenge", "outburst", "allergies", "reluctant", "disreputable", "ill-defined", "deride", "insulted", "irrecoverableness", "objectionable", "brazenness", "criticisms", "harsh", "importune", "gnawing", "insecurity", "freak", "slaves", "torturously", "hurt", "shrug", "impetuously", "unnoticed", "anxiously", "mercilessly", "splatter", "unbearable", "demoralizingly", "bullshyt", "uncouth", "erode", "impaired", "adversity", "outrageously", "miscreants", "errors", "besiege", "gainsay", "stole", "undone", "despise", "perversely", "imbalance", "lewdly", "insulting", "disfavor", "cave", "harassed", "fatally", "ruinous", "damnation", "disobey", "jaundiced", "accidental", "grievously", "startle", "suffered", "acerbic", "boil", "decline", "insubstantial", "distract", "fat", "sinfully", "sarcasm", "hissing", "overplay", "havoc", "oblique", "violation", "anti-social", "tenuous", "rantingly", "disrespectfully", "repulse", "ostracize", "unfounded", "apprehensions", "incoherent", "hestitant", "dissed", "indecisively", "unthinkably", "dirty", "dreadfully", "blatantly", "dumbfound", "cataclysmal", "fatal", "accost", "contemptuous", "drippy", "outrages", "revert", "throbs", "imperfectly", "impious", "deceivers", "loses", "excruciatingly", "overwhelming", "mistress", "flout", "self-interest", "onerously", "symptoms", "detracts", "retardedness", "extravagantly", "feint", "discoutinous", "cruelness", "goon", "worries", "declines", "refuses", "delusional", "clouding", "prejudicial", "upsettingly", "refute", "volatile", "wickedness", "dumb", "ignorant", "inconceivable", "slaughtered", "ploy", "hypocrisy", "extortion", "anguish", "banishment", "hampered", "evils", "conspiracies", "jerk", "underpaid", "unspeakablely", "dirtbag", "concern", "drop-out", "isolated", "shortchange", "buggy", "livid", "presumptuously", "strict", "ungovernable", "rejected", "apocalyptic", "gall", "snub", "flaking", "loot", "unsettling", "stump", "maladjustment", "vindictiveness", "misrepresentation", "frenetic", "cutthroat", "deluded", "bitingly", "ludicrous", "villainous", "berserk", "abuse", "aches", "deteriorating", "fraught", "terrorize", "delusions", "heedless", "touts", "hoodium", "impudent", "assassin", "barbarically", "cramp", "delayed", "rebuff", "blurred", "conflicted", "tardy", "unsteady", "laid-off", "brusque", "displeased", "knotted", "stubbornness", "hurting", "terror", "blah", "invective", "fragile", "languorous", "smelling", "totalitarian", "detract", "ravage", "condemnable", "snobish", "farcical-yet-provocative", "disruption", "hurtful", "mistaken", "backwardness", "falsely", "randomly", "perilous", "dead", "lackeys", "despot", "forgetful", "little-known", "balk", "pitifully", "poorly", "refusal", "uproarously", "blasphemous", "bestial", "irreformable", "complained", "obsess", "delirious", "rot", "prisoner"]);
+
+    // =========================================================
+    // MODIFIER LEXICONS
+    // =========================================================
+    const INTENSIFIERS = new Set([
+      'very','extremely','absolutely','incredibly','terribly','so',
+      'really','truly','utterly','deeply','highly','super','totally',
+      'completely','awfully','insanely','remarkably','exceptionally'
+    ]);
+    const NEGATORS = new Set([
+      'not',"n't",'no','never','neither','barely','hardly',
+      'scarcely','without','nobody','nothing','nowhere','nor'
+    ]);
+
+    // =========================================================
+    // TOKENIZER
+    // =========================================================
+    function tokenize(text) {
+      return text.toLowerCase()
+        .replace(/[^a-z0-9'\s-]/g, ' ')
+        .split(/\s+/)
+        .filter(t => t.length > 0);
+    }
+
+    // =========================================================
+    // CORE ANALYZER
+    // =========================================================
+    function analyzeSentiment(text) {
+      if (!text || !text.trim()) {
+        return { label:'Neutral', score:0, confidence:0, tokens:[], positiveCount:0, negativeCount:0, neutralCount:0 };
+      }
+
+      const tokens = tokenize(text);
+      const results = [];
+      let netScore = 0;
+
+      for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+
+        // Modifier word — record for context, skip from score
+        if (INTENSIFIERS.has(token) || NEGATORS.has(token)) {
+          results.push({ word: token, sentiment: 'modifier', score: 0, modified: false });
+          continue;
+        }
+
+        // Base classification
+        let sentiment = 'neutral';
+        let score = 0;
+        if (POSITIVE_WORDS.has(token))      { sentiment = 'positive'; score = 1;  }
+        else if (NEGATIVE_WORDS.has(token)) { sentiment = 'negative'; score = -1; }
+
+        let modified = false;
+
+        // Look back up to 3 tokens for negators and intensifiers
+        let negated = false, intensified = false;
+        for (let j = Math.max(0, i - 3); j < i; j++) {
+          if (NEGATORS.has(tokens[j]))     negated    = true;
+          if (INTENSIFIERS.has(tokens[j])) intensified = true;
+        }
+        if (negated && score !== 0) {
+          score     *= -1;
+          sentiment  = score > 0 ? 'positive' : 'negative';
+          modified   = true;
+        }
+        if (intensified && score !== 0) {
+          score   *= 1.5;
+          modified = true;
+        }
+
+        results.push({ word: token, sentiment, score, modified });
+        netScore += score;
+      }
+
+      // Counts
+      const meaningful    = results.filter(r => r.sentiment !== 'modifier');
+      const positiveCount = meaningful.filter(r => r.score > 0).length;
+      const negativeCount = meaningful.filter(r => r.score < 0).length;
+      const neutralCount  = meaningful.filter(r => r.score === 0).length;
+
+      // Label
+      let label = 'Neutral';
+      if (netScore > 0) label = 'Positive';
+      else if (netScore < 0) label = 'Negative';
+
+      // Confidence = matched / total meaningful
+      const matched    = positiveCount + negativeCount;
+      const confidence = meaningful.length > 0
+        ? Math.min(100, Math.round((matched / meaningful.length) * 100))
+        : 0;
+
+      return { label, score: netScore, confidence, tokens: results, positiveCount, negativeCount, neutralCount };
+    }
+
+    // =========================================================
+    // RENDER WORD CHIPS
+    // =========================================================
+    function renderBreakdown(tokens) {
+      const meaningful = tokens.filter(t => t.sentiment !== 'modifier');
+      if (meaningful.length === 0) return '<span class="text-muted">No words matched.</span>';
+      return meaningful.map((t, idx) => {
+        const cls  = t.score > 0 ? 'token-pos' : t.score < 0 ? 'token-neg' : 'token-neu';
+        const icon = t.score > 0 ? '&#8593;'  : t.score < 0 ? '&#8595;'  : '&middot;';
+        const mod  = t.modified ? ' token-modified' : '';
+        const dly  = idx * 35;
+        return `<span class="token-chip ${cls}${mod}" style="animation-delay:${dly}ms" title="${t.sentiment} | score: ${t.score.toFixed(1)}">${t.word}<sup>${icon}</sup></span>`;
+      }).join(' ');
+    }
+
+    // =========================================================
+    // UPDATE UI
+    // =========================================================
+    function updateUI(result) {
+      const app   = document.getElementById('app');
+      const card  = document.getElementById('result-card');
+      const icon  = document.getElementById('result-icon');
+      const label = document.getElementById('result-label');
+
+      // Reset
+      app.classList.remove('state-positive','state-negative','state-neutral');
+      card.classList.remove('card-positive','card-negative','card-neutral');
+
+      // Apply new state
+      if (result.label === 'Positive') {
+        app.classList.add('state-positive');
+        card.classList.add('card-positive');
+        icon.innerHTML = '&#10022;';  // ✦
+        icon.className = 'result-icon icon-pos';
+      } else if (result.label === 'Negative') {
+        app.classList.add('state-negative');
+        card.classList.add('card-negative');
+        icon.innerHTML = '&#9679;';   // ⬤
+        icon.className = 'result-icon icon-neg';
+      } else {
+        app.classList.add('state-neutral');
+        card.classList.add('card-neutral');
+        icon.innerHTML = '&#9672;';   // ◈
+        icon.className = 'result-icon icon-neu';
+      }
+
+      label.textContent = result.label;
+      document.getElementById('result-score').textContent =
+        'Net score: ' + (result.score > 0 ? '+' : '') + result.score.toFixed(2);
+
+      // Confidence bar (animate)
+      const fill = document.getElementById('confidence-fill');
+      fill.style.width = '0%';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { fill.style.width = result.confidence + '%'; });
+      });
+      document.getElementById('confidence-text').textContent = result.confidence + '%';
+
+      // Stats
+      document.getElementById('stat-pos').textContent = result.positiveCount;
+      document.getElementById('stat-neg').textContent = result.negativeCount;
+      document.getElementById('stat-neu').textContent = result.neutralCount;
+
+      // Word chips
+      document.getElementById('word-breakdown').innerHTML = renderBreakdown(result.tokens);
+
+      // Show card
+      card.classList.remove('hidden');
+      void card.offsetWidth;  // force reflow to re-trigger animation
+      card.classList.add('revealed');
+    }
+
+    // =========================================================
+    // SAMPLE PHRASES
+    // =========================================================
+    const SAMPLES = [
+      "I absolutely love this beautiful day!",
+      "This is terrible and I feel awful about it.",
+      "The product is okay, nothing special.",
+      "Not a bad experience, surprisingly delightful!",
+      "Horrible service, I will never return again.",
+      "Amazing results! Truly outstanding performance.",
+      "I hate waiting in long, frustrating queues.",
+      "What a wonderful, joyful and exciting experience!"
+    ];
+    let sampleIdx = 0;
+
+    // =========================================================
+    // EVENT WIRING — runs after DOM is ready
+    // =========================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      const input      = document.getElementById('sentiment-input');
+      const analyzeBtn = document.getElementById('analyze-btn');
+      const clearBtn   = document.getElementById('clear-btn');
+      const sampleBtn  = document.getElementById('sample-btn');
+      const charCount  = document.getElementById('char-count');
+
+      // Live char counter
+      input.addEventListener('input', () => { charCount.textContent = input.value.length; });
+
+      // Analyze
+      function doAnalyze() {
+        const text = input.value.trim();
+        if (!text) {
+          input.classList.add('shake');
+          setTimeout(() => input.classList.remove('shake'), 500);
+          return;
+        }
+        analyzeBtn.classList.add('btn-loading');
+        setTimeout(() => {
+          const result = analyzeSentiment(text);
+          updateUI(result);
+          analyzeBtn.classList.remove('btn-loading');
+        }, 280);
+      }
+
+      analyzeBtn.addEventListener('click', doAnalyze);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) doAnalyze(); });
+
+      // Clear
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        charCount.textContent = '0';
+        const card = document.getElementById('result-card');
+        card.classList.add('hidden');
+        card.classList.remove('revealed');
+        document.getElementById('app').classList.remove('state-positive','state-negative','state-neutral');
+        input.focus();
+      });
+
+      // Sample
+      sampleBtn.addEventListener('click', () => {
+        input.value = SAMPLES[sampleIdx++ % SAMPLES.length];
+        charCount.textContent = input.value.length;
+        doAnalyze();
+      });
+    });
+    
+
+     <script>
+
+const analyzeBtn =
+document.getElementById("analyze-btn");
+
+const textarea =
+document.getElementById("sentiment-input");
+
+const card =
+document.getElementById("result-card");
+
+const label =
+document.getElementById("result-label");
+
+const score =
+document.getElementById("result-score");
+
+const posStat =
+document.getElementById("stat-pos");
+
+const negStat =
+document.getElementById("stat-neg");
+
+const neuStat =
+document.getElementById("stat-neu");
+
+const confidenceFill =
+document.getElementById("confidence-fill");
+
+const confidenceText =
+document.getElementById("confidence-text");
+
+
+
+analyzeBtn.addEventListener(
+"click",
+
+function(){
+
+/* START LOADING */
+
+analyzeBtn
+.classList
+.add("btn-loading");
+
+
+setTimeout(()=>{
+
+let text =
+textarea.value
+.toLowerCase();
+
+
+let words =
+text.split(/\W+/);
+
+
+let pos = 0;
+let neg = 0;
+let neu = 0;
+
+
+/* COUNT WORDS */
+
+words.forEach(w=>{
+
+if(POSITIVE_WORDS.has(w))
+pos++;
+
+else if(NEGATIVE_WORDS.has(w))
+neg++;
+
+else
+neu++;
+
+});
+
+
+/* SENTIMENT */
+
+let sentiment =
+"neutral";
+
+
+if(pos>neg)
+sentiment="positive";
+
+
+if(neg>pos)
+sentiment="negative";
+
+
+/* SHOW CARD */
+
+card
+.classList
+.remove("hidden");
+
+card
+.classList
+.add("revealed");
+
+
+/* TEXT */
+
+label.innerText =
+sentiment.toUpperCase();
+
+
+score.innerText =
+"Positive: "+pos+
+" | Negative: "+neg;
+
+
+/* STATS */
+
+posStat.innerText = pos;
+negStat.innerText = neg;
+neuStat.innerText = neu;
+
+
+/* CONFIDENCE */
+
+let total =
+pos+neg;
+
+
+let confidence =
+total==0
+?0
+:Math.round(
+Math.max(pos,neg)
+/ total * 100
+);
+
+
+confidenceFill
+.style.width =
+confidence+"%";
+
+
+confidenceText
+.innerText =
+confidence+"%";
+
+
+
+/* COLOR FIX */
+
+document.body
+.classList
+.remove(
+"state-positive",
+"state-negative"
+);
+
+
+card
+.classList
+.remove(
+"card-positive",
+"card-negative",
+"card-neutral"
+);
+
+
+
+if(sentiment=="positive"){
+
+document.body
+.classList
+.add("state-positive");
+
+card
+.classList
+.add("card-positive");
+
+}
+
+
+else if(sentiment=="negative"){
+
+document.body
+.classList
+.add("state-negative");
+
+card
+.classList
+.add("card-negative");
+
+}
+
+
+else{
+
+card
+.classList
+.add("card-neutral");
+
+}
+
+
+
+/* STOP LOADING */
+
+analyzeBtn
+.classList
+.remove("btn-loading");
+
+
+},300);
+
+});
+
+</script>
+  </script><script src="script.js"></script>
+</body>
+</html>
