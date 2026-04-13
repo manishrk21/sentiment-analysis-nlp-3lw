@@ -1,6 +1,5 @@
 
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -160,7 +159,7 @@ body.state-negative .blob-c { background: var(--neg); opacity: 0.03; }
   <main class="page-shell">
     <header class="site-header">
       <div class="logo-mark"><span class="logo-icon">&#9672;</span><span class="logo-text">Manish R K</span></div>
-      <div class="header-meta"><span class="badge">v2.0</span><span class="lexicon-count">3 lakh word </span></div>
+      <div class="header-meta"><span class="badge">v2.0</span><span class="lexicon-count">2,93,500 word </span></div>
     </header>
     <section class="hero">
       <p class="hero-eyebrow">NLP Model</p>
@@ -232,7 +231,7 @@ body.state-negative .blob-c { background: var(--neg); opacity: 0.03; }
       </div>
     </div>
     <footer class="site-footer">
-      <p>Built with ~300000 words </p>
+      <p>Built with 2,93,500 words </p>
        <p>IIT JAMMU * Behavioural Sciences & Predictiv Analytics </p>
     </footer>
       <footer class="site-footer">
@@ -484,221 +483,7 @@ body.state-negative .blob-c { background: var(--neg); opacity: 0.03; }
     });
     
 
-     <script>
-
-const analyzeBtn =
-document.getElementById("analyze-btn");
-
-const textarea =
-document.getElementById("sentiment-input");
-
-const card =
-document.getElementById("result-card");
-
-const label =
-document.getElementById("result-label");
-
-const score =
-document.getElementById("result-score");
-
-const posStat =
-document.getElementById("stat-pos");
-
-const negStat =
-document.getElementById("stat-neg");
-
-const neuStat =
-document.getElementById("stat-neu");
-
-const confidenceFill =
-document.getElementById("confidence-fill");
-
-const confidenceText =
-document.getElementById("confidence-text");
-
-
-
-analyzeBtn.addEventListener(
-"click",
-
-function(){
-
-/* START LOADING */
-
-analyzeBtn
-.classList
-.add("btn-loading");
-
-
-setTimeout(()=>{
-
-let text =
-textarea.value
-.toLowerCase();
-
-
-let words =
-text.split(/\W+/);
-
-
-let pos = 0;
-let neg = 0;
-let neu = 0;
-
-
-/* COUNT WORDS */
-
-words.forEach(w=>{
-
-if(POSITIVE_WORDS.has(w))
-pos++;
-
-else if(NEGATIVE_WORDS.has(w))
-neg++;
-
-else
-neu++;
-
-});
-
-
-/* SENTIMENT */
-
-let sentiment =
-"neutral";
-
-
-if(pos>neg)
-sentiment="positive";
-
-
-if(neg>pos)
-sentiment="negative";
-
-
-/* SHOW CARD */
-
-card
-.classList
-.remove("hidden");
-
-card
-.classList
-.add("revealed");
-
-
-/* TEXT */
-
-label.innerText =
-sentiment.toUpperCase();
-
-
-score.innerText =
-"Positive: "+pos+
-" | Negative: "+neg;
-
-
-/* STATS */
-
-posStat.innerText = pos;
-negStat.innerText = neg;
-neuStat.innerText = neu;
-
-
-/* CONFIDENCE */
-
-let total =
-pos+neg;
-
-
-let confidence =
-total==0
-?0
-:Math.round(
-Math.max(pos,neg)
-/ total * 100
-);
-
-
-confidenceFill
-.style.width =
-confidence+"%";
-
-
-confidenceText
-.innerText =
-confidence+"%";
-
-
-
-/* COLOR FIX */
-
-document.body
-.classList
-.remove(
-"state-positive",
-"state-negative"
-);
-
-
-card
-.classList
-.remove(
-"card-positive",
-"card-negative",
-"card-neutral"
-);
-
-
-
-if(sentiment=="positive"){
-
-document.body
-.classList
-.add("state-positive");
-
-card
-.classList
-.add("card-positive");
-
-}
-
-
-else if(sentiment=="negative"){
-
-document.body
-.classList
-.add("state-negative");
-
-card
-.classList
-.add("card-negative");
-
-}
-
-
-else{
-
-card
-.classList
-.add("card-neutral");
-
-}
-
-
-
-/* STOP LOADING */
-
-analyzeBtn
-.classList
-.remove("btn-loading");
-
-
-},300);
-
-});
-
-</script>
   </script><script src="script.js"></script>
+
 </body>
 </html>
